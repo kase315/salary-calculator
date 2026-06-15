@@ -6,40 +6,14 @@
 <title>給与見込み計算</title>
 
 <style>
-body {
-    font-family: sans-serif;
-    max-width: 900px;
-    margin: 20px auto;
-    padding: 10px;
-    background: #f5f5f5;
-}
-
-.card {
-    background: white;
-    padding: 15px;
-    margin-bottom: 15px;
-    border-radius: 10px;
-}
-
-input, select {
-    padding: 8px;
-    margin: 5px;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-th, td {
-    border: 1px solid #ccc;
-    padding: 8px;
-    text-align: center;
-}
-
-.weekend {
-    background: #eee;
-}
+body{font-family:sans-serif;max-width:900px;margin:20px auto;padding:10px;background:#f5f5f5}
+.card{background:#fff;padding:15px;margin-bottom:15px;border-radius:10px}
+input,select{padding:8px;margin:5px}
+table{width:100%;border-collapse:collapse}
+th,td{border:1px solid #ccc;padding:8px;text-align:center}
+.weekend{background:#eee}
+.summary div{margin:8px 0}
+@media(max-width:600px){table{font-size:12px}input[type="time"]{width:110px}}
 </style>
 </head>
 
@@ -48,228 +22,202 @@ th, td {
 <h1>給与見込み計算</h1>
 
 <div class="card">
-    <label>支給年</label>
-    <select id="payYear"></select>
+<label>支給年</label>
+<select id="payYear"></select>
 
-    <label>支給月</label>
-    <select id="payMonth"></select>
+<label>支給月</label>
+<select id="payMonth"></select>
 
-    <br>
+<br>
 
-    <label>基本給</label>
-    <input type="number" id="baseSalary">
+<label>基本給</label>
+<input type="number" id="baseSalary">
 
-    <label>所定労働時間</label>
-    <input type="number" id="scheduledHours">
+<label>所定労働時間</label>
+<input type="number" id="scheduledHours">
 
-    <button onclick="generateTable()">勤務表生成</button>
+<button onclick="generateTable()">勤務表生成</button>
 
-    <p id="period"></p>
+<p id="period"></p>
 </div>
 
 <div class="card">
 <table>
 <thead>
-<tr>
-<th>日付</th>
-<th>曜日</th>
-<th>退勤</th>
-</tr>
+<tr><th>日付</th><th>曜日</th><th>退勤</th></tr>
 </thead>
 <tbody id="workTable"></tbody>
 </table>
 </div>
 
 <div class="card">
-<div>時間単価：<span id="hourlyRate">0</span>円</div>
-<div>残業代：<span id="overtimePay">0</span>円</div>
-<div>額面：<span id="grossSalary">0</span>円</div>
-</div>
-
-<div class="card">
-<div>所得税：<span id="incomeTax">0</span>円</div>
-
-<div>
-住民税：
-<input type="number" id="residentTax" value="0">
-</div>
-
-<div>
-社会保険：
+<label>標準報酬等級</label>
 <select id="socialSelect"></select>
 </div>
-</div>
 
-<div class="card">
-<h2>手取り：<span id="netSalary">0</span>円</h2>
+<div class="card summary">
+<div>時間単価 <span id="hourlyRate">0</span></div>
+<div>割増なし時間 <span id="normalTime">0</span></div>
+<div>割増なし残業代 <span id="normalPay">0</span></div>
+<div>割増時間 <span id="overtimeTime">0</span></div>
+<div>割増残業代 <span id="overtimePay">0</span></div>
+
+<div>総残業代 <span id="totalPay">0</span></div>
+<div>社保 <span id="socialPay">0</span></div>
+<div>所得税 <span id="incomeTax">0</span></div>
+
+<h2>額面 <span id="grossSalary">0</span></h2>
+<h2>手取り <span id="netSalary">0</span></h2>
 </div>
 
 <script>
 
-const WEEKDAYS = ['日','月','火','水','木','金','土'];
+const WEEKDAYS=['日','月','火','水','木','金','土'];
 
-const socialTable = [
-{min:58000,max:63000,val:2821.7},
-{min:63000,max:73000,val:3308.2},
-{min:73000,max:83000,val:3794.7},
-{min:83000,max:93000,val:4281.2},
-{min:93000,max:101000,val:4767.7},
-{min:101000,max:107000,val:5059.6},
-{min:107000,max:114000,val:5351.5},
-{min:114000,max:122000,val:5740.7},
-{min:122000,max:130000,val:6129.9},
-{min:130000,max:138000,val:6519.1},
-{min:138000,max:146000,val:6908.3},
-{min:146000,max:155000,val:7297.5},
-{min:155000,max:165000,val:7784.0},
-{min:165000,max:175000,val:8270.5},
-{min:175000,max:185000,val:8757.0},
-{min:185000,max:195000,val:9243.5},
-{min:195000,max:210000,val:9730.0},
-{min:210000,max:230000,val:10703.0},
-{min:230000,max:250000,val:11676.0},
-{min:250000,max:270000,val:12649.0},
-{min:270000,max:290000,val:13622.0},
-{min:290000,max:310000,val:14595.0},
-{min:310000,max:330000,val:15568.0},
-{min:330000,max:350000,val:16541.0},
-{min:350000,max:370000,val:17514.0},
-{min:370000,max:395000,val:18487.0},
-{min:395000,max:425000,val:19946.5},
-{min:425000,max:455000,val:21406.0},
-{min:455000,max:485000,val:22865.5},
-{min:485000,max:515000,val:24325.0},
-{min:515000,max:545000,val:25784.5},
-{min:545000,max:575000,val:27244.0},
-{min:575000,max:605000,val:28703.5},
-{min:605000,max:635000,val:30163.0},
-{min:635000,max:665000,val:31622.5}
+const SOCIAL=[
+{min:58000,max:63000,val:5643},
+{min:63000,max:73000,val:6616},
+{min:73000,max:83000,val:7589},
+{min:83000,max:93000,val:8562},
+{min:93000,max:101000,val:9535},
+{min:101000,max:107000,val:10119},
+{min:107000,max:114000,val:10703},
+{min:114000,max:122000,val:11481},
+{min:122000,max:130000,val:12259},
+{min:130000,max:138000,val:13038},
+{min:138000,max:146000,val:13816},
+{min:146000,max:155000,val:14595},
+{min:155000,max:165000,val:15568},
+{min:165000,max:175000,val:16541},
+{min:175000,max:185000,val:17514},
+{min:185000,max:195000,val:18487},
+{min:195000,max:210000,val:19460},
+{min:210000,max:230000,val:21406},
+{min:230000,max:250000,val:23352},
+{min:250000,max:270000,val:25298},
+{min:270000,max:290000,val:27244},
+{min:290000,max:310000,val:29190},
+{min:310000,max:330000,val:31136},
+{min:330000,max:350000,val:33082},
+{min:350000,max:370000,val:35028},
+{min:370000,max:395000,val:36974},
+{min:395000,max:425000,val:39893},
+{min:425000,max:455000,val:42812},
+{min:455000,max:485000,val:45731},
+{min:485000,max:515000,val:48650},
+{min:515000,max:545000,val:51569},
+{min:545000,max:575000,val:54488},
+{min:575000,max:605000,val:57407},
+{min:605000,max:635000,val:60326},
+{min:635000,max:665000,val:63245}
 ];
 
 function initSelectors(){
-
-const y=document.getElementById("payYear");
-const m=document.getElementById("payMonth");
-const s=document.getElementById("socialSelect");
-
-const now=new Date().getFullYear();
-
-for(let i=now-1;i<=now+1;i++){
-y.innerHTML+=`<option value="${i}">${i}</option>`;
-}
-
-for(let i=1;i<=12;i++){
-m.innerHTML+=`<option value="${i}">${i}</option>`;
-}
-
-socialTable.forEach(r=>{
-s.innerHTML+=`<option value="${r.val}">${r.min}～${r.max}</option>`;
-});
-
+let y=document.getElementById('payYear');
+let m=document.getElementById('payMonth');
+let s=document.getElementById('socialSelect');
+let now=new Date().getFullYear();
+for(let i=now-1;i<=now+1;i++)y.innerHTML+=`<option>${i}</option>`;
+for(let i=1;i<=12;i++)m.innerHTML+=`<option>${i}</option>`;
+SOCIAL.forEach((v,i)=>s.innerHTML+=`<option value="${i}">${v.min}〜${v.max}</option>`);
 y.value=now;
 m.value=new Date().getMonth()+1;
 }
 
-function generateTable(){
-
-const year=Number(document.getElementById("payYear").value);
-const month=Number(document.getElementById("payMonth").value);
-
-const start=new Date(year,month-3,21);
-const end=new Date(year,month-2,20);
-
-const tbody=document.getElementById("workTable");
-tbody.innerHTML="";
-
-let d=new Date(start);
-
-while(d<=end){
-
-const tr=document.createElement("tr");
-
-if(d.getDay()==0||d.getDay()==6) tr.classList.add("weekend");
-
-tr.innerHTML=
-`<td>${d.getMonth()+1}/${d.getDate()}</td>
-<td>${WEEKDAYS[d.getDay()]}</td>
-<td><input type="time" class="endTime"></td>`;
-
-tbody.appendChild(tr);
-d.setDate(d.getDate()+1);
+function getSocial(v){
+let r=SOCIAL.find(x=>v>=x.min&&v<x.max);
+return r?r.val:0;
 }
 
-document.querySelectorAll(".endTime")
-.forEach(i=>i.addEventListener("input",calculate));
-
-calculate();
-}
-
-function incomeTax(gross){
-
-const annual=gross*12;
-
-const salaryIncome =
-annual <= 1625000 ? 550000 : Math.floor(annual*0.6+100000);
-
-const basic=480000;
-
-const social=annual*0.15;
-
-const taxable=Math.max(0,annual-salaryIncome-basic-social);
-
-let tax=0;
-
-if(taxable<=1950000) tax=taxable*0.05;
-else if(taxable<=3300000) tax=taxable*0.08;
-else if(taxable<=6950000) tax=taxable*0.1;
-else tax=taxable*0.15;
-
+function incomeTax(g){
+let a=g*12;
+let s;
+if(a<=1625000)s=550000;
+else if(a<=1800000)s=a*0.4-100000;
+else if(a<=3600000)s=a*0.3+80000;
+else if(a<=6600000)s=a*0.2+440000;
+else if(a<=8500000)s=a*0.1+1100000;
+else s=1950000;
+let basic=480000;
+let social=getSocial(g)*12;
+let t=Math.max(0,a-s-basic-social);
+let tax;
+if(t<=1950000)tax=t*0.05;
+else if(t<=3300000)tax=t*0.1-97500;
+else if(t<=6950000)tax=t*0.2-427500;
+else if(t<=9000000)tax=t*0.23-636000;
+else tax=t*0.33-1536000;
 return Math.max(0,Math.round(tax/12));
 }
 
-function calculate(){
-
-const base=Number(document.getElementById("baseSalary").value);
-const hours=Number(document.getElementById("scheduledHours").value);
-
-if(!base||!hours)return;
-
-const hourly=base/hours;
-
-let ot=0;
-
-document.querySelectorAll(".endTime").forEach(i=>{
-
-if(!i.value)return;
-
-const[h,m]=i.value.split(":").map(Number);
-const end=h*60+m;
-
-if(end>18*60) ot+=end-18*60;
-
-});
-
-const overtimePay=hourly*1.25*(ot/60);
-
-const gross=base+overtimePay;
-
-const social=Number(document.getElementById("socialSelect").value||0);
-const resident=Number(document.getElementById("residentTax").value||0);
-const income=incomeTax(gross);
-
-const net=gross-social-resident-income;
-
-document.getElementById("hourlyRate").textContent=Math.round(hourly);
-document.getElementById("overtimePay").textContent=Math.round(overtimePay);
-document.getElementById("grossSalary").textContent=Math.round(gross);
-document.getElementById("incomeTax").textContent=income;
-document.getElementById("netSalary").textContent=Math.round(net);
+function generateTable(){
+let y=+document.getElementById('payYear').value;
+let m=+document.getElementById('payMonth').value;
+let s=new Date(y,m-3,21);
+let e=new Date(y,m-2,20);
+document.getElementById('period').textContent=s.toLocaleDateString()+"〜"+e.toLocaleDateString();
+let b=document.getElementById('workTable');
+b.innerHTML="";
+for(let d=new Date(s);d<=e;d.setDate(d.getDate()+1)){
+let tr=document.createElement('tr');
+if(d.getDay()==0||d.getDay()==6)tr.className="weekend";
+let k=(d.getMonth()+1)+"/"+d.getDate();
+tr.innerHTML=`<td>${k}</td><td>${WEEKDAYS[d.getDay()]}</td><td><input type="time" class="t" data-k="${k}"></td>`;
+b.appendChild(tr);
+}
+calc();
+document.querySelectorAll('.t').forEach(x=>x.onchange=()=>{calc();save();});
+load();
 }
 
-document.getElementById("baseSalary").addEventListener("input",calculate);
-document.getElementById("scheduledHours").addEventListener("input",calculate);
-document.getElementById("residentTax").addEventListener("input",calculate);
-document.getElementById("socialSelect").addEventListener("change",calculate);
+function calc(){
+let base=+document.getElementById('baseSalary').value;
+let h=+document.getElementById('scheduledHours').value;
+if(!base||!h)return;
+let rate=base/h;
+let n=0,o=0;
+document.querySelectorAll('.t').forEach(x=>{
+if(!x.value)return;
+let [hh,mm]=x.value.split(':').map(Number);
+let end=hh*60+mm;
+if(end>1065)n+=Math.min(end,1080)-1065;
+if(end>1080)o+=end-1080;
+});
+let normal=rate*(n/60);
+let over=rate*1.25*(o/60);
+let total=normal+over;
+let gross=base+total;
+let social=getSocial(gross);
+let tax=incomeTax(gross);
+let net=gross-social-tax;
+
+document.getElementById('hourlyRate').textContent=Math.round(rate);
+document.getElementById('normalPay').textContent=Math.round(normal);
+document.getElementById('overtimePay').textContent=Math.round(over);
+document.getElementById('totalPay').textContent=Math.round(total);
+document.getElementById('grossSalary').textContent=Math.round(gross);
+document.getElementById('socialPay').textContent=social;
+document.getElementById('incomeTax').textContent=tax;
+document.getElementById('netSalary').textContent=Math.round(net);
+
+let idx=SOCIAL.findIndex(x=>gross>=x.min&&gross<x.max);
+if(idx>=0)document.getElementById('socialSelect').value=idx;
+}
+
+function save(){
+localStorage.setItem("d",JSON.stringify([...document.querySelectorAll('.t')].map(x=>[x.dataset.k,x.value])));
+}
+
+function load(){
+let d=JSON.parse(localStorage.getItem("d")||"[]");
+d.forEach(([k,v])=>{
+let x=[...document.querySelectorAll('.t')].find(i=>i.dataset.k==k);
+if(x)x.value=v;
+});
+}
+
+document.getElementById('baseSalary').oninput=calc;
+document.getElementById('scheduledHours').oninput=calc;
 
 initSelectors();
 generateTable();
