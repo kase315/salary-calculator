@@ -46,13 +46,8 @@ th, td {
 }
 
 @media (max-width: 600px) {
-    table {
-        font-size: 12px;
-    }
-
-    input[type="time"] {
-        width: 110px;
-    }
+    table { font-size: 12px; }
+    input[type="time"] { width: 110px; }
 }
 </style>
 </head>
@@ -90,45 +85,45 @@ th, td {
 </div>
 
 <div class="card">
-    <table>
-        <thead>
-            <tr>
-                <th>日付</th>
-                <th>曜日</th>
-                <th>退勤</th>
-            </tr>
-        </thead>
-        <tbody id="workTable"></tbody>
-    </table>
+<table>
+<thead>
+<tr>
+<th>日付</th>
+<th>曜日</th>
+<th>退勤</th>
+</tr>
+</thead>
+<tbody id="workTable"></tbody>
+</table>
 </div>
 
 <div class="card summary">
 
-    <div>時間単価：<span id="hourlyRate">0</span>円</div>
+<div>時間単価：<span id="hourlyRate">0</span>円</div>
 
-    <div>割増なし時間：<span id="normalTime">0時間0分</span></div>
-    <div>割増なし残業代：<span id="normalPay">0</span>円</div>
+<div>割増なし時間：<span id="normalTime">0時間0分</span></div>
+<div>割増なし残業代：<span id="normalPay">0</span>円</div>
 
-    <div>割増時間：<span id="overtimeTime">0時間0分</span></div>
-    <div>割増残業代：<span id="overtimePay">0</span>円</div>
+<div>割増時間：<span id="overtimeTime">0時間0分</span></div>
+<div>割増残業代：<span id="overtimePay">0</span>円</div>
 
-    <hr>
+<hr>
 
-    <div>総残業代：<span id="totalPay">0</span>円</div>
+<div>総残業代：<span id="totalPay">0</span>円</div>
+<h2>額面：<span id="grossSalary">0</span>円</h2>
 
-    <h2>額面給与：<span id="grossSalary">0</span>円</h2>
+<hr>
 
-    <hr>
+<div>健康保険：<span id="health">0</span></div>
+<div>厚生年金：<span id="pension">0</span></div>
+<div>雇用保険：<span id="employment">0</span></div>
+<div>社保合計：<span id="social">0</span></div>
 
-    <div>健康保険：<span id="health">0</span></div>
-    <div>厚生年金：<span id="pension">0</span></div>
-    <div>雇用保険：<span id="employment">0</span></div>
-    <div>社保合計：<span id="social">0</span></div>
+<div>所得税：<span id="income">0</span></div>
+<div>住民税：<span id="resident">0</span></div>
 
-    <div>所得税：<span id="income">0</span></div>
-    <div>住民税：<span id="resident">0</span></div>
+<h2>手取り：<span id="net">0</span></h2>
 
-    <h2>手取り：<span id="net">0</span></h2>
 </div>
 
 <script>
@@ -173,191 +168,171 @@ const TABLE = [
 {min:635000,max:665000,health:31622,pension:74750}
 ];
 
-function initSelectors() {
+function initSelectors(){
 
-    const y = document.getElementById('payYear');
-    const m = document.getElementById('payMonth');
-    const g = document.getElementById('grade');
+const y=document.getElementById('payYear');
+const m=document.getElementById('payMonth');
+const g=document.getElementById('grade');
 
-    const now = new Date().getFullYear();
+const now=new Date().getFullYear();
 
-    for (let i = now - 1; i <= now + 1; i++) {
-        y.innerHTML += `<option value="${i}">${i}</option>`;
-    }
+for(let i=now-1;i<=now+1;i++)
+y.innerHTML+=`<option value="${i}">${i}</option>`;
 
-    for (let i = 1; i <= 12; i++) {
-        m.innerHTML += `<option value="${i}">${i}</option>`;
-    }
+for(let i=1;i<=12;i++)
+m.innerHTML+=`<option value="${i}">${i}</option>`;
 
-    TABLE.forEach((v, i) => {
-        g.innerHTML += `<option value="${i}">${v.min}〜${v.max}</option>`;
-    });
+TABLE.forEach((v,i)=>
+g.innerHTML+=`<option value="${i}">${v.min}〜${v.max}</option>`
+);
 
-    y.value = now;
-    m.value = new Date().getMonth() + 1;
+y.value=now;
+m.value=new Date().getMonth()+1;
 }
 
-function generateTable() {
+function generateTable(){
 
-    const y = +payYear.value;
-    const m = +payMonth.value;
+const y=+payYear.value;
+const m=+payMonth.value;
 
-    const start = new Date(y, m - 3, 21);
-    const end = new Date(y, m - 2, 20);
+const start=new Date(y,m-3,21);
+const end=new Date(y,m-2,20);
 
-    period.textContent =
-        `対象期間：${format(start)} ～ ${format(end)}`;
+period.textContent=`${start.getMonth()+1}/${start.getDate()}〜${end.getMonth()+1}/${end.getDate()}`;
 
-    workTable.innerHTML = '';
+workTable.innerHTML='';
 
-    let d = new Date(start);
+let d=new Date(start);
 
-    while (d <= end) {
+while(d<=end){
 
-        const tr = document.createElement('tr');
-        const w = d.getDay();
+const tr=document.createElement('tr');
+const w=d.getDay();
 
-        if (w === 0 || w === 6) tr.classList.add('weekend');
+if(w===0||w===6)tr.classList.add('weekend');
 
-        const key = format(d);
+const key=`${d.getMonth()+1}/${d.getDate()}`;
 
-        tr.innerHTML = `
-            <td>${key}</td>
-            <td>${WEEKDAYS[w]}</td>
-            <td><input type="time" class="endTime" data-date="${key}"></td>
-        `;
+tr.innerHTML=`
+<td>${key}</td>
+<td>${WEEKDAYS[w]}</td>
+<td><input type="time" class="endTime" data-date="${key}"></td>
+`;
 
-        workTable.appendChild(tr);
-        d.setDate(d.getDate() + 1);
-    }
-
-    loadData();
-
-    document.querySelectorAll('.endTime').forEach(i => {
-        i.addEventListener('input', () => {
-            calculate();
-            saveData();
-        });
-    });
-
-    calculate();
+workTable.appendChild(tr);
+d.setDate(d.getDate()+1);
 }
 
-function format(d) {
-    return `${d.getMonth() + 1}/${d.getDate()}`;
+document.querySelectorAll('.endTime').forEach(i=>{
+i.oninput=()=>{calculate();saveData();}
+});
+
+loadData();
+calculate();
 }
 
-function calculate() {
+function calculate(){
 
-    const base = +baseSalary.value;
-    const sched = +scheduledHours.value;
+const base=+baseSalary.value;
+const sched=+scheduledHours.value;
 
-    if (!base || !sched) return;
+if(!base||!sched)return;
 
-    const hourly = base / sched;
+const hourly=base/sched;
 
-    let normal = 0;
-    let over = 0;
+let normal=0;
+let over=0;
 
-    document.querySelectorAll('.endTime').forEach(i => {
+document.querySelectorAll('.endTime').forEach(i=>{
+if(!i.value)return;
 
-        if (!i.value) return;
+const[h,m]=i.value.split(':').map(Number);
+const end=h*60+m;
 
-        const [h, m] = i.value.split(':').map(Number);
-        const end = h * 60 + m;
+const n=17*60+45;
+const o=18*60;
 
-        const normalStart = 17 * 60 + 45;
-        const overtimeStart = 18 * 60;
+if(end>n)normal+=Math.min(end,o)-n;
+if(end>o)over+=end-o;
+});
 
-        if (end > normalStart) {
-            normal += Math.min(end, overtimeStart) - normalStart;
-        }
+const normalPay=hourly*normal/60;
+const overtimePay=hourly*1.25*over/60;
 
-        if (end > overtimeStart) {
-            over += end - overtimeStart;
-        }
-    });
+const totalPay=normalPay+overtimePay;
+const gross=base+totalPay;
 
-    const normalPay = hourly * normal / 60;
-    const overtimePay = hourly * 1.25 * over / 60;
+hourlyRate.textContent=Math.round(hourly);
+normalTime.textContent=`${Math.floor(normal/60)}時間${normal%60}分`;
+normalPay.textContent=Math.round(normalPay);
+overtimeTime.textContent=`${Math.floor(over/60)}時間${over%60}分`;
+overtimePay.textContent=Math.round(overtimePay);
+totalPay.textContent=Math.round(totalPay);
+grossSalary.textContent=Math.round(gross);
 
-    const totalPay = normalPay + overtimePay;
+const t=TABLE[grade.value];
 
-    const gross = base + totalPay;
+const healthVal=t.health;
+const pensionVal=t.pension;
+const employmentVal=gross*0.006;
 
-    hourlyRate.textContent = Math.round(hourly);
-    normalTime.textContent = `${Math.floor(normal/60)}時間${normal%60}分`;
-    normalPay.textContent = Math.round(normalPay);
-    overtimeTime.textContent = `${Math.floor(over/60)}時間${over%60}分`;
-    overtimePay.textContent = Math.round(overtimePay);
-    totalPay.textContent = Math.round(totalPay);
-    grossSalary.textContent = Math.round(gross);
+const social=healthVal+pensionVal+employmentVal;
 
-    const idx = grade.value;
-    const t = TABLE[idx];
+const income=Math.max(0,Math.round(gross*0.05/12));
+const resident=+residentTax.value;
 
-    const health = t.health;
-    const pension = t.pension;
-    const employment = gross * 0.006;
+const net=gross-social-income-resident;
 
-    const social = health + pension + employment;
+health.textContent=Math.round(healthVal);
+pension.textContent=Math.round(pensionVal);
+employment.textContent=Math.round(employmentVal);
+social.textContent=Math.round(social);
 
-    const income = Math.max(0, Math.round((gross * 0.05) / 12));
-    const resident = +residentTax.value;
-
-    const net = gross - social - income - resident;
-
-    health.textContent = Math.round(health);
-    pension.textContent = Math.round(pension);
-    employment.textContent = Math.round(employment);
-    social.textContent = Math.round(social);
-
-    income.textContent = income;
-    resident.textContent = resident;
-    net.textContent = Math.round(net);
+income.textContent=income;
+resident.textContent=resident;
+net.textContent=Math.round(net);
 }
 
-function saveData() {
+function saveData(){
 
-    const key = `salary_${payYear.value}_${payMonth.value}`;
+const key=`salary_${payYear.value}_${payMonth.value}`;
 
-    const data = {
-        baseSalary: baseSalary.value,
-        scheduledHours: scheduledHours.value,
-        times: {}
-    };
+const data={
+baseSalary:baseSalary.value,
+scheduledHours:scheduledHours.value,
+times:{}
+};
 
-    document.querySelectorAll('.endTime').forEach(i => {
-        data.times[i.dataset.date] = i.value;
-    });
+document.querySelectorAll('.endTime').forEach(i=>{
+data.times[i.dataset.date]=i.value;
+});
 
-    localStorage.setItem(key, JSON.stringify(data));
+localStorage.setItem(key,JSON.stringify(data));
 }
 
-function loadData() {
+function loadData(){
 
-    const key = `salary_${payYear.value}_${payMonth.value}`;
+const key=`salary_${payYear.value}_${payMonth.value}`;
+const saved=localStorage.getItem(key);
+if(!saved)return;
 
-    const saved = localStorage.getItem(key);
-    if (!saved) return;
+const data=JSON.parse(saved);
 
-    const data = JSON.parse(saved);
+baseSalary.value=data.baseSalary||'';
+scheduledHours.value=data.scheduledHours||'';
 
-    baseSalary.value = data.baseSalary || '';
-    scheduledHours.value = data.scheduledHours || '';
-
-    document.querySelectorAll('.endTime').forEach(i => {
-        i.value = data.times[i.dataset.date] || '';
-    });
+document.querySelectorAll('.endTime').forEach(i=>{
+i.value=data.times[i.dataset.date]||'';
+});
 }
 
-baseSalary.oninput = calculate;
-scheduledHours.oninput = calculate;
-residentTax.oninput = calculate;
+baseSalary.oninput=()=>{calculate();saveData();}
+scheduledHours.oninput=()=>{calculate();saveData();}
+residentTax.oninput=calculate;
 
-payYear.onchange = generateTable;
-payMonth.onchange = generateTable;
-grade.onchange = calculate;
+payYear.onchange=generateTable;
+payMonth.onchange=generateTable;
+grade.onchange=calculate;
 
 initSelectors();
 generateTable();
