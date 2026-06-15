@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>給与見込み計算（千葉支部版）</title>
+<title>給与見込み計算（完全版）</title>
 <style>
 body{font-family:sans-serif;max-width:900px;margin:20px auto;padding:10px;background:#f5f5f5;}
 .card{background:#fff;padding:15px;margin-bottom:15px;border-radius:10px;}
@@ -49,8 +49,9 @@ th,td{border:1px solid #ccc;padding:8px;text-align:center;}
 <hr>
 <div>額面：<span id="gross">0</span></div>
 <hr>
-<div>健康保険：<span id="health">0</span></div>
-<div>厚生年金：<span id="pension">0</span></div>
+<div>健康保険（折半）：<span id="health">0</span></div>
+<div>厚生年金（折半）：<span id="pension">0</span></div>
+<div>子ども拠出金（折半）：<span id="child">0</span></div>
 <div>雇用保険：<span id="employment">0</span></div>
 <div>社保合計：<span id="social">0</span></div>
 <div>所得税：<span id="income">0</span></div>
@@ -59,33 +60,25 @@ th,td{border:1px solid #ccc;padding:8px;text-align:center;}
 </div>
 
 <script>
-// ご提示いただいた千葉支部テーブルを反映（折半額）
-const TABLE=[
-    {min:58000, health:2822, pension:8052}, {min:63000, health:3308, pension:8967},
-    {min:73000, health:3795, pension:9516}, {min:83000, health:4281, pension:10065},
-    {min:93000, health:4768, pension:10797}, {min:101000, health:5060, pension:11529},
-    {min:107000, health:5352, pension:12261}, {min:114000, health:5741, pension:12993},
-    {min:122000, health:6130, pension:13725}, {min:130000, health:6519, pension:14640},
-    {min:138000, health:6908, pension:15555}, {min:146000, health:7298, pension:16470},
-    {min:155000, health:7784, pension:17385}, {min:165000, health:8271, pension:18300},
-    {min:175000, health:8757, pension:19295}, {min:185000, health:9244, pension:20130},
-    {min:195000, health:9730, pension:21960}, {min:210000, health:10703, pension:23790},
-    {min:230000, health:11676, pension:25620}, {min:250000, health:12649, pension:27450},
-    {min:270000, health:13622, pension:29280}, {min:290000, health:14595, pension:31110},
-    {min:310000, health:15568, pension:32940}, {min:330000, health:16541, pension:34770},
-    {min:350000, health:17514, pension:37515}, {min:370000, health:18487, pension:40260},
-    {min:395000, health:19947, pension:43005}, {min:425000, health:21406, pension:45750},
-    {min:455000, health:22866, pension:48495}, {min:485000, health:24325, pension:51240},
-    {min:515000, health:25785, pension:53985}, {min:545000, health:27244, pension:56730},
-    {min:575000, health:28704, pension:59475}, {min:605000, health:30163, pension:61000},
-    {min:635000, health:31623, pension:63000}, {min:665000, health:33082, pension:65000},
-    {min:695000, health:34542, pension:67000}, {min:730000, health:36488, pension:69000},
-    {min:770000, health:38434, pension:72000}, {min:810000, health:40380, pension:75000},
-    {min:855000, health:42812, pension:78000}, {min:905000, health:45245, pension:81000},
-    {min:955000, health:47677, pension:84000}, {min:1005000, health:50110, pension:87000},
-    {min:1055000, health:53029, pension:90000}, {min:1115000, health:55948, pension:93000},
-    {min:1175000, health:58867, pension:96000}, {min:1235000, health:61786, pension:99000},
-    {min:1295000, health:64705, pension:102000}, {min:1355000, health:67624, pension:105000}
+// image_be11e5.png のデータを全網羅
+const TABLE = [
+    {min:58000, h:2821.7, p:8052, c:66.7}, {min:63000, h:3308.2, p:8967, c:78.2}, {min:73000, h:3794.7, p:9516, c:89.7},
+    {min:83000, h:4281.2, p:10065, c:101.2}, {min:93000, h:4767.7, p:10797, c:112.7}, {min:101000, h:5059.6, p:11529, c:119.6},
+    {min:107000, h:5351.5, p:12261, c:126.5}, {min:114000, h:5740.7, p:12993, c:135.7}, {min:122000, h:6129.9, p:13725, c:144.9},
+    {min:130000, h:6519.1, p:14640, c:154.1}, {min:138000, h:6908.3, p:15555, c:163.3}, {min:146000, h:7297.5, p:16470, c:172.5},
+    {min:155000, h:7784.0, p:17385, c:184.0}, {min:165000, h:8270.5, p:18300, c:195.5}, {min:175000, h:8757.0, p:19295, c:207.0},
+    {min:185000, h:9243.5, p:20130, c:218.5}, {min:195000, h:9730.0, p:21960, c:230.0}, {min:210000, h:10703.0, p:23790, c:253.0},
+    {min:230000, h:11676.0, p:25620, c:276.0}, {min:250000, h:12649.0, p:27450, c:299.0}, {min:270000, h:13622.0, p:29280, c:322.0},
+    {min:290000, h:14595.0, p:31110, c:345.0}, {min:310000, h:15568.0, p:32940, c:368.0}, {min:330000, h:16541.0, p:34770, c:391.0},
+    {min:350000, h:17514.0, p:37515, c:414.0}, {min:370000, h:18487.0, p:40260, c:437.0}, {min:395000, h:19946.5, p:43005, c:471.5},
+    {min:425000, h:21406.0, p:45750, c:506.0}, {min:455000, h:22865.5, p:48495, c:540.5}, {min:485000, h:24325.0, p:51240, c:575.0},
+    {min:515000, h:25784.5, p:53985, c:609.5}, {min:545000, h:27244.0, p:56730, c:644.0}, {min:575000, h:28703.5, p:59475, c:678.5},
+    {min:605000, h:30163.0, p:61000, c:713.0}, {min:635000, h:31622.5, p:63000, c:747.5}, {min:665000, h:33082.0, p:65000, c:782.0},
+    {min:695000, h:34541.5, p:67000, c:816.5}, {min:730000, h:36487.5, p:69000, c:862.5}, {min:770000, h:38433.5, p:72000, c:908.5},
+    {min:810000, h:40379.5, p:75000, c:954.5}, {min:855000, h:42812.0, p:78000, c:1012.0}, {min:905000, h:45244.5, p:81000, c:1069.5},
+    {min:955000, h:47677.0, p:84000, c:1127.0}, {min:1005000, h:50109.5, p:87000, c:1184.5}, {min:1055000, h:53028.5, p:90000, c:1253.5},
+    {min:1115000, h:55947.5, p:93000, c:1322.5}, {min:1175000, h:58866.5, p:96000, c:1391.5}, {min:1235000, h:61785.5, p:99000, c:1460.5},
+    {min:1295000, h:64704.5, p:102000, c:1529.5}, {min:1355000, h:67623.5, p:105000, c:1598.5}
 ];
 
 function initGradeSelect() {
@@ -125,10 +118,11 @@ function calc(){
     const gradeVal = document.getElementById("grade").value;
     const grade = (gradeVal === "auto") ? getGrade(gross) : TABLE[gradeVal];
 
-    const health = grade.health;
-    const pension = grade.pension;
+    const health = grade.h;
+    const pension = grade.p;
+    const child = grade.c;
     const employment = Math.round(gross * 0.006);
-    const social = health + pension + employment;
+    const social = Math.round(health + pension + child + employment);
     const income = Math.round(gross * 0.035 / 12);
     const resident = parseFloat(document.getElementById("residentTax").value) || 0;
     const net = gross - social - income - resident;
@@ -139,6 +133,7 @@ function calc(){
     document.getElementById("gross").textContent = Math.round(gross);
     document.getElementById("health").textContent = Math.round(health);
     document.getElementById("pension").textContent = Math.round(pension);
+    document.getElementById("child").textContent = Math.round(child);
     document.getElementById("employment").textContent = employment;
     document.getElementById("social").textContent = social;
     document.getElementById("income").textContent = income;
