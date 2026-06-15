@@ -245,20 +245,18 @@ function formatDate(date) {
     return `${date.getMonth() + 1}/${date.getDate()}`;
 }
 
-function getSocialInsurance(grossSalary) {
-    const health = grossSalary * 0.049;
-    const pension = grossSalary * 0.0915;
-    const employment = grossSalary * 0.003;
-    return health + pension + employment;
+function getSocialInsurance(annualIncome) {
+    return annualIncome * 0.15;
 }
 
 function calculateWithExtra(hourlyRate, extraHours) {
     return hourlyRate * extraHours * 1.25;
 }
 
-function calcIncomeTax(income) {
+function calcIncomeTax(annualIncome) {
 
-    const taxable = Math.max(0, income - 480000);
+    const social = annualIncome * 0.15;
+    const taxable = Math.max(0, annualIncome - social - 480000);
 
     let tax = 0;
 
@@ -272,10 +270,8 @@ function calcIncomeTax(income) {
         tax = taxable * 0.23 - 636000;
     } else if (taxable <= 18000000) {
         tax = taxable * 0.33 - 1536000;
-    } else if (taxable <= 40000000) {
-        tax = taxable * 0.40 - 2796000;
     } else {
-        tax = taxable * 0.45 - 4796000;
+        tax = taxable * 0.40;
     }
 
     return Math.max(0, tax);
@@ -322,10 +318,12 @@ function calculate() {
 
     const finalGrossSalary = grossSalary + extraPay;
 
-    const residentTax = Number(document.getElementById('residentTax').value || 0);
+    const annualIncome = finalGrossSalary * 12;
 
-    const socialInsurance = getSocialInsurance(finalGrossSalary);
-    const incomeTax = calcIncomeTax(finalGrossSalary);
+    const socialInsurance = getSocialInsurance(annualIncome) / 12;
+    const incomeTax = calcIncomeTax(annualIncome) / 12;
+
+    const residentTax = Number(document.getElementById('residentTax').value || 0);
 
     const netSalary =
         finalGrossSalary - socialInsurance - incomeTax - residentTax;
