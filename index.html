@@ -56,7 +56,7 @@ th,td{border:1px solid #ccc;padding:8px;text-align:center}
 </div>
 
 <div class="card">
-<label>標準報酬等級（プルダウン）</label>
+<label>標準報酬等級</label>
 <select id="socialSelect"></select>
 </div>
 
@@ -126,7 +126,7 @@ let now=new Date().getFullYear();
 for(let i=now-1;i<=now+1;i++)y.innerHTML+=`<option>${i}</option>`;
 for(let i=1;i<=12;i++)m.innerHTML+=`<option>${i}</option>`;
 
-// プルダウンに等級表示
+/* 社保プルダウン */
 SOCIAL.forEach((v,i)=>{
 s.innerHTML+=`<option value="${i}">${v.min}〜${v.max}</option>`;
 });
@@ -135,43 +135,9 @@ y.value=now;
 m.value=new Date().getMonth()+1;
 }
 
-/* 社保（プルダウン優先） */
+/* 社保固定取得（プルダウン優先） */
 function getSocialByIndex(i){
 return SOCIAL[i].val;
-}
-
-function getSocialIndex(gross){
-for(let i=0;i<SOCIAL.length;i++){
-if(gross>=SOCIAL[i].min&&gross<SOCIAL[i].max)return i;
-}
-return SOCIAL.length-1;
-}
-
-/* 所得税 */
-function incomeTax(g){
-let a=g*12;
-let s;
-
-if(a<=1625000)s=550000;
-else if(a<=1800000)s=a*0.4-100000;
-else if(a<=3600000)s=a*0.3+80000;
-else if(a<=6600000)s=a*0.2+440000;
-else if(a<=8500000)s=a*0.1+1100000;
-else s=1950000;
-
-let basic=480000;
-let social=getSocialByIndex(+document.getElementById('socialSelect').value)*12;
-
-let t=Math.max(0,a-s-basic-social);
-
-let tax;
-if(t<=1950000)tax=t*0.05;
-else if(t<=3300000)tax=t*0.1-97500;
-else if(t<=6950000)tax=t*0.2-427500;
-else if(t<=9000000)tax=t*0.23-636000;
-else tax=t*0.33-1536000;
-
-return Math.max(0,Math.round(tax/12));
 }
 
 function generateTable(){
@@ -205,10 +171,39 @@ document.querySelectorAll('.t').forEach(x=>x.onchange=()=>{calc();save();});
 load();
 }
 
+/* 所得税（現実寄せ簡易） */
+function incomeTax(g){
+let a=g*12;
+
+let s;
+if(a<=1625000)s=550000;
+else if(a<=1800000)s=a*0.4-100000;
+else if(a<=3600000)s=a*0.3+80000;
+else if(a<=6600000)s=a*0.2+440000;
+else if(a<=8500000)s=a*0.1+1100000;
+else s=1950000;
+
+let basic=480000;
+
+/* 社保（年） */
+let idx=+document.getElementById('socialSelect').value;
+let social=getSocialByIndex(idx)*12;
+
+let t=Math.max(0,a-s-basic-social);
+
+let tax;
+if(t<=1950000)tax=t*0.05;
+else if(t<=3300000)tax=t*0.1-97500;
+else if(t<=6950000)tax=t*0.2-427500;
+else if(t<=9000000)tax=t*0.23-636000;
+else tax=t*0.33-1536000;
+
+return Math.max(0,Math.round(tax/12));
+}
+
 function calc(){
 let base=+document.getElementById('baseSalary').value;
 let h=+document.getElementById('scheduledHours').value;
-
 if(!base||!h)return;
 
 let rate=base/h;
@@ -217,7 +212,6 @@ let n=0,o=0;
 
 document.querySelectorAll('.t').forEach(x=>{
 if(!x.value)return;
-
 let [hh,mm]=x.value.split(':').map(Number);
 let end=hh*60+mm;
 
@@ -234,11 +228,11 @@ let over=rate*1.25*(o/60);
 let total=normal+over;
 let gross=base+total;
 
-/* 社保（プルダウン反映） */
+/* 社保固定（プルダウン反映） */
 let idx=+document.getElementById('socialSelect').value;
 let social=getSocialByIndex(idx);
 
-/* プルダウン自動補正（参考表示） */
+/* 自動補正表示のみ */
 document.getElementById('socialSelect').value=getSocialIndex(gross);
 
 let tax=incomeTax(gross);
@@ -272,9 +266,17 @@ if(x)x.value=v;
 });
 }
 
+function getSocialIndex(g){
+for(let i=0;i<SOCIAL.length;i++){
+if(g>=SOCIAL[i].min&&g<SOCIAL[i].max)return i;
+}
+return SOCIAL.length-1;
+}
+
 document.getElementById('baseSalary').oninput=calc;
 document.getElementById('scheduledHours').oninput=calc;
 document.getElementById('residentTax').oninput=calc;
+document.getElementById('socialSelect').onchange=calc;
 
 initSelectors();
 generateTable();
