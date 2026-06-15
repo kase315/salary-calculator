@@ -139,12 +139,25 @@ th, td {
 
     <span id="extraOvertimeLabel">0時間</span>
 
-    <br><br>
+</div>
 
-    <label>
-        <input type="checkbox" id="socialOnlyMode">
-        社会保険だけモード
-    </label>
+<div class="card">
+
+    <h3>税金内訳</h3>
+
+    <div>所得税：
+        <span id="incomeTax">0</span>円
+    </div>
+
+    <div>社会保険：
+        <span id="socialInsurance">0</span>円
+    </div>
+
+    <div>
+        住民税：
+        <input type="number" id="residentTax" value="0">
+        円
+    </div>
 
 </div>
 
@@ -278,7 +291,6 @@ function calculate() {
 
     const normalPay = hourlyRate * (normalMinutes / 60);
     const overtimePay = hourlyRate * 1.25 * (overtimeMinutes / 60);
-
     const totalPay = normalPay + overtimePay;
     const grossSalary = baseSalary + totalPay;
 
@@ -287,18 +299,13 @@ function calculate() {
 
     const finalGrossSalary = grossSalary + extraPay;
 
-    const socialOnly = document.getElementById('socialOnlyMode').checked;
+    const residentTax = Number(document.getElementById('residentTax').value || 0);
 
     const socialInsurance = getSocialInsurance(finalGrossSalary);
-    const tax = finalGrossSalary * 0.1;
+    const incomeTax = finalGrossSalary * 0.1;
 
-    let netSalary;
-
-    if (socialOnly) {
-        netSalary = finalGrossSalary - socialInsurance;
-    } else {
-        netSalary = finalGrossSalary - socialInsurance - tax;
-    }
+    const netSalary =
+        finalGrossSalary - socialInsurance - incomeTax - residentTax;
 
     document.getElementById('hourlyRate').textContent = Math.round(hourlyRate).toLocaleString();
     document.getElementById('normalTime').textContent = `${Math.floor(normalMinutes / 60)}時間${normalMinutes % 60}分`;
@@ -307,6 +314,10 @@ function calculate() {
     document.getElementById('overtimePay').textContent = Math.round(overtimePay).toLocaleString();
     document.getElementById('totalPay').textContent = Math.round(totalPay).toLocaleString();
     document.getElementById('grossSalary').textContent = Math.round(finalGrossSalary).toLocaleString();
+
+    document.getElementById('incomeTax').textContent = Math.round(incomeTax).toLocaleString();
+    document.getElementById('socialInsurance').textContent = Math.round(socialInsurance).toLocaleString();
+
     document.getElementById('netSalary').textContent = Math.round(netSalary).toLocaleString();
 }
 
@@ -362,7 +373,7 @@ document.getElementById('extraOvertime').addEventListener('input', (e) => {
     calculate();
 });
 
-document.getElementById('socialOnlyMode').addEventListener('change', calculate);
+document.getElementById('residentTax').addEventListener('input', calculate);
 
 initSelectors();
 generateTable();
