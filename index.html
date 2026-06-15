@@ -130,10 +130,35 @@ th, td {
 
 </div>
 
+<div class="card">
+
+    <h3>シミュレーション</h3>
+
+    <label>追加残業時間（時間）</label>
+    <input type="range" id="extraOvertime" min="0" max="50" value="0">
+
+    <span id="extraOvertimeLabel">0時間</span>
+
+    <br><br>
+
+    <label>
+        <input type="checkbox" id="socialOnlyMode">
+        社会保険だけモード
+    </label>
+
+</div>
+
+<div class="card summary">
+
+    <div>手取り（概算）：
+        <span id="netSalary">0</span>円
+    </div>
+
+</div>
+
 <script>
 
 const WEEKDAYS = ['日','月','火','水','木','金','土'];
-
 
 function initSelectors() {
 
@@ -143,270 +168,201 @@ function initSelectors() {
     const currentYear = new Date().getFullYear();
 
     for (let y = currentYear - 1; y <= currentYear + 1; y++) {
-
-        yearSelect.innerHTML +=
-            `<option value="${y}">${y}</option>`;
+        yearSelect.innerHTML += `<option value="${y}">${y}</option>`;
     }
 
     for (let m = 1; m <= 12; m++) {
-
-        monthSelect.innerHTML +=
-            `<option value="${m}">${m}</option>`;
+        monthSelect.innerHTML += `<option value="${m}">${m}</option>`;
     }
 
     yearSelect.value = currentYear;
     monthSelect.value = new Date().getMonth() + 1;
 }
 
-
 function generateTable() {
 
-    const payYear =
-        Number(document.getElementById('payYear').value);
+    const payYear = Number(document.getElementById('payYear').value);
+    const payMonth = Number(document.getElementById('payMonth').value);
 
-    const payMonth =
-        Number(document.getElementById('payMonth').value);
-
-    const startDate =
-        new Date(payYear, payMonth - 3, 21);
-
-    const endDate =
-        new Date(payYear, payMonth - 2, 20);
+    const startDate = new Date(payYear, payMonth - 3, 21);
+    const endDate = new Date(payYear, payMonth - 2, 20);
 
     document.getElementById('period').textContent =
         `対象期間：${formatDate(startDate)} ～ ${formatDate(endDate)}`;
 
-    const tbody =
-        document.getElementById('workTable');
-
+    const tbody = document.getElementById('workTable');
     tbody.innerHTML = '';
 
     let current = new Date(startDate);
 
     while (current <= endDate) {
 
-        const tr =
-            document.createElement('tr');
-
-        const weekday =
-            current.getDay();
+        const tr = document.createElement('tr');
+        const weekday = current.getDay();
 
         if (weekday === 0 || weekday === 6) {
-
             tr.classList.add('weekend');
         }
 
-        const key =
-            formatDate(current);
+        const key = formatDate(current);
 
         tr.innerHTML = `
             <td>${key}</td>
             <td>${WEEKDAYS[weekday]}</td>
             <td>
-                <input
-                    type="time"
-                    class="endTime"
-                    data-date="${key}">
+                <input type="time" class="endTime" data-date="${key}">
             </td>
         `;
 
         tbody.appendChild(tr);
-
         current.setDate(current.getDate() + 1);
     }
 
     loadData();
 
-    document.querySelectorAll('.endTime')
-        .forEach(input => {
-
-            input.addEventListener(
-                'change',
-                () => {
-
-                    calculate();
-                    saveData();
-                }
-            );
+    document.querySelectorAll('.endTime').forEach(input => {
+        input.addEventListener('change', () => {
+            calculate();
+            saveData();
         });
+    });
 
     calculate();
 }
 
 function formatDate(date) {
-
     return `${date.getMonth() + 1}/${date.getDate()}`;
+}
+
+function getSocialInsurance(grossSalary) {
+    const health = grossSalary * 0.049;
+    const pension = grossSalary * 0.0915;
+    const employment = grossSalary * 0.003;
+    return health + pension + employment;
+}
+
+function calculateWithExtra(hourlyRate, extraHours) {
+    return hourlyRate * extraHours * 1.25;
 }
 
 function calculate() {
 
-    const baseSalary =
-        Number(document.getElementById('baseSalary').value);
+    const baseSalary = Number(document.getElementById('baseSalary').value);
+    const scheduledHours = Number(document.getElementById('scheduledHours').value);
 
-    const scheduledHours =
-        Number(document.getElementById('scheduledHours').value);
+    if (!baseSalary || !scheduledHours) return;
 
-    if (!baseSalary || !scheduledHours) {
-
-        return;
-    }
-
-    const hourlyRate =
-        baseSalary / scheduledHours;
+    const hourlyRate = baseSalary / scheduledHours;
 
     let normalMinutes = 0;
     let overtimeMinutes = 0;
 
-    document.querySelectorAll('.endTime')
-        .forEach(input => {
+    document.querySelectorAll('.endTime').forEach(input => {
 
-            if (!input.value) return;
+        if (!input.value) return;
 
-            const [hour, minute] =
-                input.value.split(':').map(Number);
+        const [hour, minute] = input.value.split(':').map(Number);
+        const end = hour * 60 + minute;
 
-            const end =
-                hour * 60 + minute;
+        const normalStart = 17 * 60 + 45;
+        const overtimeStart = 18 * 60;
 
-            const normalStart =
-                17 * 60 + 45;
+        if (end > normalStart) {
+            normalMinutes += Math.min(end, overtimeStart) - normalStart;
+        }
 
-            const overtimeStart =
-                18 * 60;
+        if (end > overtimeStart) {
+            overtimeMinutes += end - overtimeStart;
+        }
+    });
 
-            if (end > normalStart) {
+    const normalPay = hourlyRate * (normalMinutes / 60);
+    const overtimePay = hourlyRate * 1.25 * (overtimeMinutes / 60);
 
-                normalMinutes +=
-                    Math.min(end, overtimeStart)
-                    - normalStart;
-            }
+    const totalPay = normalPay + overtimePay;
+    const grossSalary = baseSalary + totalPay;
 
-            if (end > overtimeStart) {
+    const extraHours = Number(document.getElementById('extraOvertime').value);
+    const extraPay = calculateWithExtra(hourlyRate, extraHours);
 
-                overtimeMinutes +=
-                    end - overtimeStart;
-            }
-        });
+    const finalGrossSalary = grossSalary + extraPay;
 
-    normalMinutes =
-        Math.max(normalMinutes, 0);
+    const socialOnly = document.getElementById('socialOnlyMode').checked;
 
-    const normalPay =
-        hourlyRate * (normalMinutes / 60);
+    const socialInsurance = getSocialInsurance(finalGrossSalary);
+    const tax = finalGrossSalary * 0.1;
 
-    const overtimePay =
-        hourlyRate * 1.25 * (overtimeMinutes / 60);
+    let netSalary;
 
-    const totalPay =
-        normalPay + overtimePay;
+    if (socialOnly) {
+        netSalary = finalGrossSalary - socialInsurance;
+    } else {
+        netSalary = finalGrossSalary - socialInsurance - tax;
+    }
 
-    const grossSalary =
-        baseSalary + totalPay;
-
-    document.getElementById('hourlyRate')
-        .textContent =
-        Math.round(hourlyRate).toLocaleString();
-
-    document.getElementById('normalTime')
-        .textContent =
-        `${Math.floor(normalMinutes / 60)}時間${normalMinutes % 60}分`;
-
-    document.getElementById('normalPay')
-        .textContent =
-        Math.round(normalPay).toLocaleString();
-
-    document.getElementById('overtimeTime')
-        .textContent =
-        `${Math.floor(overtimeMinutes / 60)}時間${overtimeMinutes % 60}分`;
-
-    document.getElementById('overtimePay')
-        .textContent =
-        Math.round(overtimePay).toLocaleString();
-
-    document.getElementById('totalPay')
-        .textContent =
-        Math.round(totalPay).toLocaleString();
-
-    document.getElementById('grossSalary')
-        .textContent =
-        Math.round(grossSalary).toLocaleString();
+    document.getElementById('hourlyRate').textContent = Math.round(hourlyRate).toLocaleString();
+    document.getElementById('normalTime').textContent = `${Math.floor(normalMinutes / 60)}時間${normalMinutes % 60}分`;
+    document.getElementById('normalPay').textContent = Math.round(normalPay).toLocaleString();
+    document.getElementById('overtimeTime').textContent = `${Math.floor(overtimeMinutes / 60)}時間${overtimeMinutes % 60}分`;
+    document.getElementById('overtimePay').textContent = Math.round(overtimePay).toLocaleString();
+    document.getElementById('totalPay').textContent = Math.round(totalPay).toLocaleString();
+    document.getElementById('grossSalary').textContent = Math.round(finalGrossSalary).toLocaleString();
+    document.getElementById('netSalary').textContent = Math.round(netSalary).toLocaleString();
 }
 
 function saveData() {
 
-    const key =
-        `salary_${document.getElementById('payYear').value}_${document.getElementById('payMonth').value}`;
+    const key = `salary_${document.getElementById('payYear').value}_${document.getElementById('payMonth').value}`;
 
     const data = {
-
-        baseSalary:
-            document.getElementById('baseSalary').value,
-
-        scheduledHours:
-            document.getElementById('scheduledHours').value,
-
+        baseSalary: document.getElementById('baseSalary').value,
+        scheduledHours: document.getElementById('scheduledHours').value,
         times: {}
     };
 
-    document.querySelectorAll('.endTime')
-        .forEach(input => {
+    document.querySelectorAll('.endTime').forEach(input => {
+        data.times[input.dataset.date] = input.value;
+    });
 
-            data.times[input.dataset.date] =
-                input.value;
-        });
-
-    localStorage.setItem(
-        key,
-        JSON.stringify(data)
-    );
+    localStorage.setItem(key, JSON.stringify(data));
 }
 
 function loadData() {
 
-    const key =
-        `salary_${document.getElementById('payYear').value}_${document.getElementById('payMonth').value}`;
+    const key = `salary_${document.getElementById('payYear').value}_${document.getElementById('payMonth').value}`;
 
-    const saved =
-        localStorage.getItem(key);
-
+    const saved = localStorage.getItem(key);
     if (!saved) return;
 
-    const data =
-        JSON.parse(saved);
+    const data = JSON.parse(saved);
 
-    document.getElementById('baseSalary').value =
-        data.baseSalary || '';
+    document.getElementById('baseSalary').value = data.baseSalary || '';
+    document.getElementById('scheduledHours').value = data.scheduledHours || '';
 
-    document.getElementById('scheduledHours').value =
-        data.scheduledHours || '';
-
-    document.querySelectorAll('.endTime')
-        .forEach(input => {
-
-            input.value =
-                data.times[input.dataset.date] || '';
-        });
+    document.querySelectorAll('.endTime').forEach(input => {
+        input.value = data.times[input.dataset.date] || '';
+    });
 }
 
-document.getElementById('baseSalary')
-    .addEventListener('input', () => {
+document.getElementById('baseSalary').addEventListener('input', () => {
+    calculate();
+    saveData();
+});
 
-        calculate();
-        saveData();
-    });
+document.getElementById('scheduledHours').addEventListener('input', () => {
+    calculate();
+    saveData();
+});
 
-document.getElementById('scheduledHours')
-    .addEventListener('input', () => {
+document.getElementById('payYear').addEventListener('change', generateTable);
+document.getElementById('payMonth').addEventListener('change', generateTable);
 
-        calculate();
-        saveData();
-    });
+document.getElementById('extraOvertime').addEventListener('input', (e) => {
+    document.getElementById('extraOvertimeLabel').textContent = `${e.target.value}時間`;
+    calculate();
+});
 
-document.getElementById('payYear')
-    .addEventListener('change', generateTable);
-
-document.getElementById('payMonth')
-    .addEventListener('change', generateTable);
+document.getElementById('socialOnlyMode').addEventListener('change', calculate);
 
 initSelectors();
 generateTable();
@@ -415,4 +371,3 @@ generateTable();
 
 </body>
 </html>
-
