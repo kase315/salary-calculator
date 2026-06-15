@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>給与見込み計算（機能追加版）</title>
+<title>給与見込み計算（目標達成表示版）</title>
 <style>
 body{font-family:sans-serif;max-width:900px;margin:20px auto;padding:10px;background:#f5f5f5;}
 .card{background:#fff;padding:15px;margin-bottom:15px;border-radius:10px;}
@@ -11,6 +11,7 @@ input,select,button{padding:8px;margin:5px;}
 table{width:100%;border-collapse:collapse;}
 th,td{border:1px solid #ccc;padding:8px;text-align:center;}
 .weekend{background:#eee;}
+.goal-item{margin:5px 0; font-size: 0.9em; color: #333;}
 </style>
 </head>
 <body>
@@ -67,10 +68,12 @@ th,td{border:1px solid #ccc;padding:8px;text-align:center;}
 <div>所得税：<span id="income">0</span></div>
 <div>住民税：<span id="resident">0</span></div>
 <h2>手取り：<span id="net">0</span></h2>
+<hr>
+<h3>目標達成までの残り残業</h3>
+<div id="goals"></div>
 </div>
 
 <script>
-// 保険料データ
 const TABLE = [
     {min:58000, h:2821.7, p:0, c:66.7},     {min:68000, h:3308.2, p:0, c:78.2},     {min:78000, h:3794.7, p:0, c:89.7},
     {min:88000, h:4281.2, p:8052, c:101.2}, {min:98000, h:4767.7, p:8967, c:112.7}, {min:104000, h:5059.6, p:9516, c:119.6},
@@ -92,11 +95,7 @@ function init(){
     for(let i=0; i<3; i++) ySel.innerHTML += `<option>${now.getFullYear()+i}</option>`;
     for(let i=1; i<=12; i++) mSel.innerHTML += `<option>${i}</option>`;
     mSel.value = now.getMonth()+1;
-
-    TABLE.forEach((item, index) => {
-        document.getElementById("grade").innerHTML += `<option value="${index}">等級${index + 1} (目安:${item.min.toLocaleString()}〜)</option>`;
-    });
-
+    TABLE.forEach((item, index) => document.getElementById("grade").innerHTML += `<option value="${index}">等級${index + 1} (目安:${item.min.toLocaleString()}〜)</option>`);
     [ySel, mSel, document.getElementById("baseSalary"), document.getElementById("scheduledHours"), document.getElementById("residentTax"), document.getElementById("grade")].forEach(el => el.onchange = generateTable);
     generateTable();
 }
@@ -114,8 +113,7 @@ function getIncomeTax(annualGross, annualSocial) {
     else if (annualGross <= 8500000) deduction = annualGross * 0.1 + 1100000;
     else deduction = 1950000;
     const taxable = Math.max(0, annualGross - deduction - 480000 - annualSocial);
-    const annualTax = taxable * 0.05;
-    return Math.floor(annualTax / 12);
+    return Math.floor((taxable * 0.05) / 12);
 }
 
 function saveTimes() {
@@ -125,10 +123,7 @@ function saveTimes() {
     alert('保存しました');
 }
 
-function resetData() {
-    localStorage.removeItem('savedTimes');
-    generateTable();
-}
+function resetData() { localStorage.removeItem('savedTimes'); generateTable(); }
 
 function generateTable(){
     const y = +document.getElementById("payYear").value;
@@ -136,7 +131,6 @@ function generateTable(){
     const start = new Date(y, m-3, 21);
     const end = new Date(y, m-2, 20);
     document.getElementById("periodLabel").textContent = `計算対象期間：${start.getMonth()+1}/${start.getDate()} ～ ${end.getMonth()+1}/${end.getDate()}`;
-
     const saved = JSON.parse(localStorage.getItem('savedTimes') || '{}');
     const tbody = document.getElementById("workTable");
     tbody.innerHTML = "";
@@ -161,43 +155,43 @@ function calc(){
             const [h,m] = i.value.split(":").map(Number);
             const time = h * 60 + m;
             if(time > 1065) {
-                const normal = Math.min(time, 1080) - 1065;
-                if(normal > 0) ot10 += normal;
+                ot10 += Math.min(time, 1080) - 1065;
                 if(time > 1080) ot125 += (time - 1080);
             }
         }
     });
 
-    const hourlyRate = base / sched;
-    const otPay = (hourlyRate * ot10 / 60) + (hourlyRate * 1.25 * ot125 / 60);
-    const gross = base + otPay;
-    const gVal = document.getElementById("grade").value;
-    const grade = (gVal === "auto") ? getGrade(gross) : TABLE[gVal];
+    const hourly = base / sched;
+    const currentNet = Math.round(base + (hourly * ot10/60) + (hourly * 1.25 * ot125/60) - Math.round(getGrade(base).h + getGrade(base).p + getGrade(base).c + (base * 0.006)) - getIncomeTax(base*12, (getGrade(base).h + getGrade(base).p + getGrade(base).c + (base*0.006))*12) - (+document.getElementById("residentTax").value || 0) - 300) + (+document.getElementById("transportation").value || 0);
 
-    const annualGross = gross * 12;
-    const annualSocial = (grade.h + grade.p + grade.c + (gross * 0.006)) * 12;
-    const income = getIncomeTax(annualGross, annualSocial);
-    const social = Math.round(grade.h + grade.p + grade.c + (gross * 0.006));
-    
-    // 計算：(額面 - 社会保険 - 所得税 - 住民税 - 300円調整) + 交通費
-    const transport = +document.getElementById("transportation").value || 0;
-    const net = Math.round(gross - social - income - (+document.getElementById("residentTax").value || 0) - 300) + transport;
+    // 目標達成表示
+    const goalsDiv = document.getElementById("goals");
+    goalsDiv.innerHTML = "";
+    [200000, 210000, 220000].forEach(target => {
+        let needed = target - currentNet;
+        if(needed <= 0) {
+            goalsDiv.innerHTML += `<div class="goal-item">手取り${(target/10000)}万円：達成済み！</div>`;
+        } else {
+            let neededMin = Math.ceil(needed / (hourly / 60)); 
+            goalsDiv.innerHTML += `<div class="goal-item">手取り${(target/10000)}万円まで：あと約 ${neededMin} 分</div>`;
+        }
+    });
 
-    document.getElementById("hourly").textContent = Math.round(hourlyRate);
+    // UI更新
+    document.getElementById("hourly").textContent = Math.round(hourly);
     document.getElementById("otTime10").textContent = `${Math.floor(ot10/60)}h${ot10%60}m`;
     document.getElementById("otTime125").textContent = `${Math.floor(ot125/60)}h${ot125%60}m`;
-    document.getElementById("otPay").textContent = Math.round(otPay);
-    document.getElementById("gross").textContent = Math.round(gross);
-    document.getElementById("health").textContent = Math.round(grade.h);
-    document.getElementById("pension").textContent = Math.round(grade.p);
-    document.getElementById("child").textContent = Math.round(grade.c);
-    document.getElementById("employment").textContent = Math.round(gross * 0.006);
-    document.getElementById("social").textContent = social;
-    document.getElementById("income").textContent = income;
+    document.getElementById("otPay").textContent = Math.round((hourly * ot10 / 60) + (hourly * 1.25 * ot125 / 60));
+    document.getElementById("gross").textContent = Math.round(base + (hourly * ot10 / 60) + (hourly * 1.25 * ot125 / 60));
+    document.getElementById("health").textContent = Math.round(getGrade(base).h);
+    document.getElementById("pension").textContent = Math.round(getGrade(base).p);
+    document.getElementById("child").textContent = Math.round(getGrade(base).c);
+    document.getElementById("employment").textContent = Math.round((base + (hourly * ot10 / 60) + (hourly * 1.25 * ot125 / 60)) * 0.006);
+    document.getElementById("social").textContent = Math.round(getGrade(base).h + getGrade(base).p + getGrade(base).c + ((base + (hourly * ot10 / 60) + (hourly * 1.25 * ot125 / 60)) * 0.006));
+    document.getElementById("income").textContent = getIncomeTax((base + (hourly * ot10 / 60) + (hourly * 1.25 * ot125 / 60)) * 12, (getGrade(base).h + getGrade(base).p + getGrade(base).c + (base*0.006))*12);
     document.getElementById("resident").textContent = document.getElementById("residentTax").value;
-    document.getElementById("net").textContent = net;
+    document.getElementById("net").textContent = currentNet;
 }
-
 init();
 </script>
 </body>
