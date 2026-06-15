@@ -90,7 +90,6 @@ th, td {
                 <th>退勤</th>
             </tr>
         </thead>
-
         <tbody id="workTable"></tbody>
     </table>
 </div>
@@ -149,14 +148,13 @@ th, td {
         <span id="incomeTax">0</span>円
     </div>
 
-    <div>社会保険：
-        <span id="socialInsurance">0</span>円
-    </div>
-
-    <div>
-        住民税：
+    <div>住民税（入力）：
         <input type="number" id="residentTax" value="0">
         円
+    </div>
+
+    <div>社会保険：
+        <span id="socialInsurance">0</span>円
     </div>
 
 </div>
@@ -258,6 +256,31 @@ function calculateWithExtra(hourlyRate, extraHours) {
     return hourlyRate * extraHours * 1.25;
 }
 
+function calcIncomeTax(income) {
+
+    const taxable = Math.max(0, income - 480000);
+
+    let tax = 0;
+
+    if (taxable <= 1950000) {
+        tax = taxable * 0.05;
+    } else if (taxable <= 3300000) {
+        tax = taxable * 0.10 - 97500;
+    } else if (taxable <= 6950000) {
+        tax = taxable * 0.20 - 427500;
+    } else if (taxable <= 9000000) {
+        tax = taxable * 0.23 - 636000;
+    } else if (taxable <= 18000000) {
+        tax = taxable * 0.33 - 1536000;
+    } else if (taxable <= 40000000) {
+        tax = taxable * 0.40 - 2796000;
+    } else {
+        tax = taxable * 0.45 - 4796000;
+    }
+
+    return Math.max(0, tax);
+}
+
 function calculate() {
 
     const baseSalary = Number(document.getElementById('baseSalary').value);
@@ -302,7 +325,7 @@ function calculate() {
     const residentTax = Number(document.getElementById('residentTax').value || 0);
 
     const socialInsurance = getSocialInsurance(finalGrossSalary);
-    const incomeTax = finalGrossSalary * 0.1;
+    const incomeTax = calcIncomeTax(finalGrossSalary);
 
     const netSalary =
         finalGrossSalary - socialInsurance - incomeTax - residentTax;
@@ -317,7 +340,6 @@ function calculate() {
 
     document.getElementById('incomeTax').textContent = Math.round(incomeTax).toLocaleString();
     document.getElementById('socialInsurance').textContent = Math.round(socialInsurance).toLocaleString();
-
     document.getElementById('netSalary').textContent = Math.round(netSalary).toLocaleString();
 }
 
