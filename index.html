@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>給与見込み計算（所得税控除対応版）</title>
+<title>給与見込み計算（残業計算修正版）</title>
 <style>
 body{font-family:sans-serif;max-width:900px;margin:20px auto;padding:10px;background:#f5f5f5;}
 .card{background:#fff;padding:15px;margin-bottom:15px;border-radius:10px;}
@@ -49,7 +49,8 @@ th,td{border:1px solid #ccc;padding:8px;text-align:center;}
 
 <div class="card">
 <div>時間単価：<span id="hourly">0</span></div>
-<div>残業時間：<span id="otTime">0</span></div>
+<div>残業時間（普通）：<span id="otTime10">0</span></div>
+<div>残業時間（割増）：<span id="otTime125">0</span></div>
 <div>残業代：<span id="otPay">0</span></div>
 <hr>
 <div>額面：<span id="gross">0</span></div>
@@ -102,7 +103,6 @@ function getGrade(gross){
 }
 
 function getIncomeTax(annualGross, annualSocial) {
-    // 1. 給与所得控除の計算
     let deduction = 0;
     if (annualGross <= 1900000) deduction = 650000;
     else if (annualGross <= 3600000) deduction = annualGross * 0.3 + 80000;
@@ -110,10 +110,7 @@ function getIncomeTax(annualGross, annualSocial) {
     else if (annualGross <= 8500000) deduction = annualGross * 0.1 + 1100000;
     else deduction = 1950000;
 
-    // 2. 課税所得の計算 (基礎控除48万を前提)
     const taxable = Math.max(0, annualGross - deduction - 480000 - annualSocial);
-    
-    // 3. 税率適用 (簡易的に5%として算出)
     const annualTax = taxable * 0.05;
     return Math.floor(annualTax / 12);
 }
@@ -141,30 +138,41 @@ function calc(){
     const sched = +document.getElementById("scheduledHours").value || 0;
     if(!base || !sched) return;
 
-    let ot = 0;
+    let ot10 = 0; // 割増なし残業 (17:45～18:00)
+    let ot125 = 0; // 割増あり残業 (18:00～)
     document.querySelectorAll(".t").forEach(i => {
         if(i.value){
             const [h,m] = i.value.split(":").map(Number);
-            if(h*60+m > 1080) ot += (h*60+m - 1080);
+            const time = h * 60 + m;
+            
+            // 17:45 (1065分) 以降の場合
+            if(time > 1065) {
+                // 17:45～18:00の分
+                const normal = Math.min(time, 1080) - 1065;
+                if(normal > 0) ot10 += normal;
+                
+                // 18:00以降の分
+                if(time > 1080) ot125 += (time - 1080);
+            }
         }
     });
 
-    const otPay = (base/sched) * 1.25 * ot / 60;
+    const hourlyRate = base / sched;
+    const otPay = (hourlyRate * ot10 / 60) + (hourlyRate * 1.25 * ot125 / 60);
     const gross = base + otPay;
     const gVal = document.getElementById("grade").value;
     const grade = (gVal === "auto") ? getGrade(gross) : TABLE[gVal];
 
-    // 所得税：給与所得控除を考慮
+    // 所得税・社保計算
     const annualGross = gross * 12;
     const annualSocial = (grade.h + grade.p + grade.c + (gross * 0.006)) * 12;
     const income = getIncomeTax(annualGross, annualSocial);
-
-    // 社保合計
     const social = Math.round(grade.h + grade.p + grade.c + (gross * 0.006));
     const net = Math.round(gross - social - income - (+document.getElementById("residentTax").value || 0));
 
-    document.getElementById("hourly").textContent = Math.round(base/sched);
-    document.getElementById("otTime").textContent = `${Math.floor(ot/60)}h${ot%60}m`;
+    document.getElementById("hourly").textContent = Math.round(hourlyRate);
+    document.getElementById("otTime10").textContent = `${Math.floor(ot10/60)}h${ot10%60}m`;
+    document.getElementById("otTime125").textContent = `${Math.floor(ot125/60)}h${ot125%60}m`;
     document.getElementById("otPay").textContent = Math.round(otPay);
     document.getElementById("gross").textContent = Math.round(gross);
     document.getElementById("health").textContent = Math.round(grade.h);
