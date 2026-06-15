@@ -40,10 +40,6 @@ th, td {
 .weekend {
     background: #eee;
 }
-
-.summary div {
-    margin: 8px 0;
-}
 </style>
 </head>
 
@@ -84,7 +80,7 @@ th, td {
 </table>
 </div>
 
-<div class="card summary">
+<div class="card">
 <div>時間単価：<span id="hourlyRate">0</span>円</div>
 <div>残業代：<span id="overtimePay">0</span>円</div>
 <div>額面：<span id="grossSalary">0</span>円</div>
@@ -104,7 +100,7 @@ th, td {
 </div>
 </div>
 
-<div class="card summary">
+<div class="card">
 <h2>手取り：<span id="netSalary">0</span>円</h2>
 </div>
 
@@ -113,44 +109,44 @@ th, td {
 const WEEKDAYS = ['日','月','火','水','木','金','土'];
 
 const socialTable = [
-{min:58000,max:63000,val:5643.4},
-{min:63000,max:73000,val:6616.4},
-{min:73000,max:83000,val:7589.4},
-{min:83000,max:93000,val:8562.4},
-{min:93000,max:101000,val:9535.4},
-{min:101000,max:107000,val:10119.2},
-{min:107000,max:114000,val:10703.0},
-{min:114000,max:122000,val:11481.4},
-{min:122000,max:130000,val:12259.8},
-{min:130000,max:138000,val:13038.2},
-{min:138000,max:146000,val:13816.6},
-{min:146000,max:155000,val:14595.0},
-{min:155000,max:165000,val:15568.0},
-{min:165000,max:175000,val:16541.0},
-{min:175000,max:185000,val:17514.0},
-{min:185000,max:195000,val:18487.0},
-{min:195000,max:210000,val:19460.0},
-{min:210000,max:230000,val:21406.0},
-{min:230000,max:250000,val:23352.0},
-{min:250000,max:270000,val:25298.0},
-{min:270000,max:290000,val:27244.0},
-{min:290000,max:310000,val:29190.0},
-{min:310000,max:330000,val:31136.0},
-{min:330000,max:350000,val:33082.0},
-{min:350000,max:370000,val:35028.0},
-{min:370000,max:395000,val:36974.0},
-{min:395000,max:425000,val:39893.0},
-{min:425000,max:455000,val:42812.0},
-{min:455000,max:485000,val:45731.0},
-{min:485000,max:515000,val:48650.0},
-{min:515000,max:545000,val:51569.0},
-{min:545000,max:575000,val:54488.0},
-{min:575000,max:605000,val:57407.0},
-{min:605000,max:635000,val:60326.0},
-{min:635000,max:665000,val:63245.0}
+{min:58000,max:63000,val:2821.7},
+{min:63000,max:73000,val:3308.2},
+{min:73000,max:83000,val:3794.7},
+{min:83000,max:93000,val:4281.2},
+{min:93000,max:101000,val:4767.7},
+{min:101000,max:107000,val:5059.6},
+{min:107000,max:114000,val:5351.5},
+{min:114000,max:122000,val:5740.7},
+{min:122000,max:130000,val:6129.9},
+{min:130000,max:138000,val:6519.1},
+{min:138000,max:146000,val:6908.3},
+{min:146000,max:155000,val:7297.5},
+{min:155000,max:165000,val:7784.0},
+{min:165000,max:175000,val:8270.5},
+{min:175000,max:185000,val:8757.0},
+{min:185000,max:195000,val:9243.5},
+{min:195000,max:210000,val:9730.0},
+{min:210000,max:230000,val:10703.0},
+{min:230000,max:250000,val:11676.0},
+{min:250000,max:270000,val:12649.0},
+{min:270000,max:290000,val:13622.0},
+{min:290000,max:310000,val:14595.0},
+{min:310000,max:330000,val:15568.0},
+{min:330000,max:350000,val:16541.0},
+{min:350000,max:370000,val:17514.0},
+{min:370000,max:395000,val:18487.0},
+{min:395000,max:425000,val:19946.5},
+{min:425000,max:455000,val:21406.0},
+{min:455000,max:485000,val:22865.5},
+{min:485000,max:515000,val:24325.0},
+{min:515000,max:545000,val:25784.5},
+{min:545000,max:575000,val:27244.0},
+{min:575000,max:605000,val:28703.5},
+{min:605000,max:635000,val:30163.0},
+{min:635000,max:665000,val:31622.5}
 ];
 
-function initSelectors() {
+function initSelectors(){
 
 const y=document.getElementById("payYear");
 const m=document.getElementById("payMonth");
@@ -212,20 +208,23 @@ function incomeTax(gross){
 
 const annual=gross*12;
 
+const salaryIncome =
+annual <= 1625000 ? 550000 : Math.floor(annual*0.6+100000);
+
+const basic=480000;
+
+const social=annual*0.15;
+
+const taxable=Math.max(0,annual-salaryIncome-basic-social);
+
 let tax=0;
 
-if(annual<=1950000) tax=annual*0.05;
-else if(annual<=3300000) tax=annual*0.08;
-else if(annual<=6950000) tax=annual*0.1;
-else tax=annual*0.12;
+if(taxable<=1950000) tax=taxable*0.05;
+else if(taxable<=3300000) tax=taxable*0.08;
+else if(taxable<=6950000) tax=taxable*0.1;
+else tax=taxable*0.15;
 
-return Math.max(0,tax/12);
-}
-
-function getSocial(){
-
-return Number(document.getElementById("socialSelect").value||0);
-
+return Math.max(0,Math.round(tax/12));
 }
 
 function calculate(){
@@ -254,7 +253,7 @@ const overtimePay=hourly*1.25*(ot/60);
 
 const gross=base+overtimePay;
 
-const social=getSocial();
+const social=Number(document.getElementById("socialSelect").value||0);
 const resident=Number(document.getElementById("residentTax").value||0);
 const income=incomeTax(gross);
 
@@ -263,7 +262,7 @@ const net=gross-social-resident-income;
 document.getElementById("hourlyRate").textContent=Math.round(hourly);
 document.getElementById("overtimePay").textContent=Math.round(overtimePay);
 document.getElementById("grossSalary").textContent=Math.round(gross);
-document.getElementById("incomeTax").textContent=Math.round(income);
+document.getElementById("incomeTax").textContent=income;
 document.getElementById("netSalary").textContent=Math.round(net);
 }
 
