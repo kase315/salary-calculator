@@ -35,6 +35,11 @@ th,td{border:1px solid #ccc;padding:8px;text-align:center;}
 <div class="card">
 <label>住民税（月）</label>
 <input type="number" id="residentTax" value="0">
+<br>
+<label>等級選択</label>
+<select id="grade">
+    <option value="auto">自動計算</option>
+</select>
 </div>
 
 <div class="card">
@@ -69,6 +74,17 @@ const TABLE=[
 {min:605000,health:30163,pension:71300},{min:635000,health:31622,pension:74750}
 ];
 
+// 等級選択肢の初期化
+function initGradeSelect() {
+    const sel = document.getElementById("grade");
+    TABLE.forEach((item, index) => {
+        const opt = document.createElement("option");
+        opt.value = index;
+        opt.textContent = `等級${index + 1} (給与目安: ${item.min}〜)`;
+        sel.appendChild(opt);
+    });
+}
+
 function getGrade(gross){
     for(let i=TABLE.length-1;i>=0;i--){
         if(gross>=TABLE[i].min) return TABLE[i];
@@ -92,7 +108,11 @@ function calc(){
 
     const otPay = hourly * 1.25 * ot / 60;
     const gross = base + otPay;
-    const grade = getGrade(gross);
+    
+    // 等級判定（手動選択があればそれを優先）
+    const gradeVal = document.getElementById("grade").value;
+    const grade = (gradeVal === "auto") ? getGrade(gross) : TABLE[gradeVal];
+
     const health = grade.health;
     const pension = grade.pension;
     const employment = gross * 0.006;
@@ -129,9 +149,12 @@ function generateTable(){
     document.querySelectorAll(".t").forEach(i=>i.oninput=calc);
 }
 
+// 初期設定
+initGradeSelect();
 document.getElementById("baseSalary").oninput = calc;
 document.getElementById("scheduledHours").oninput = calc;
 document.getElementById("residentTax").oninput = calc;
+document.getElementById("grade").onchange = calc;
 generateTable();
 </script>
 </body>
