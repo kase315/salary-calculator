@@ -44,16 +44,6 @@ th, td {
 .summary div {
     margin: 8px 0;
 }
-
-@media (max-width: 600px) {
-    table {
-        font-size: 12px;
-    }
-
-    input[type="time"] {
-        width: 110px;
-    }
-}
 </style>
 </head>
 
@@ -84,11 +74,11 @@ th, td {
 <div class="card">
     <table>
         <thead>
-            <tr>
-                <th>日付</th>
-                <th>曜日</th>
-                <th>退勤</th>
-            </tr>
+        <tr>
+            <th>日付</th>
+            <th>曜日</th>
+            <th>退勤</th>
+        </tr>
         </thead>
         <tbody id="workTable"></tbody>
     </table>
@@ -96,47 +86,10 @@ th, td {
 
 <div class="card summary">
 
-    <div>時間単価：
-        <span id="hourlyRate">0</span>円
-    </div>
+    <div>時間単価：<span id="hourlyRate">0</span>円</div>
+    <div>残業代：<span id="totalPay">0</span>円</div>
 
-    <div>割増なし時間：
-        <span id="normalTime">0時間0分</span>
-    </div>
-
-    <div>割増なし残業代：
-        <span id="normalPay">0</span>円
-    </div>
-
-    <div>割増時間：
-        <span id="overtimeTime">0時間0分</span>
-    </div>
-
-    <div>割増残業代：
-        <span id="overtimePay">0</span>円
-    </div>
-
-    <hr>
-
-    <div>総残業代：
-        <span id="totalPay">0</span>円
-    </div>
-
-    <h2>
-        額面給与：
-        <span id="grossSalary">0</span>円
-    </h2>
-
-</div>
-
-<div class="card">
-
-    <h3>シミュレーション</h3>
-
-    <label>追加残業時間（時間）</label>
-    <input type="range" id="extraOvertime" min="0" max="50" value="0">
-
-    <span id="extraOvertimeLabel">0時間</span>
+    <h2>額面：<span id="grossSalary">0</span>円</h2>
 
 </div>
 
@@ -144,27 +97,18 @@ th, td {
 
     <h3>税金内訳</h3>
 
-    <div>所得税：
-        <span id="incomeTax">0</span>円
-    </div>
+    <div>所得税：<span id="incomeTax">0</span>円</div>
 
     <div>住民税（入力）：
         <input type="number" id="residentTax" value="0">
-        円
     </div>
 
-    <div>社会保険：
-        <span id="socialInsurance">0</span>円
-    </div>
+    <div>社会保険：<span id="socialInsurance">0</span>円</div>
 
 </div>
 
 <div class="card summary">
-
-    <div>手取り（概算）：
-        <span id="netSalary">0</span>円
-    </div>
-
+    <h2>手取り：<span id="netSalary">0</span>円</h2>
 </div>
 
 <script>
@@ -173,90 +117,70 @@ const WEEKDAYS = ['日','月','火','水','木','金','土'];
 
 function initSelectors() {
 
-    const yearSelect = document.getElementById('payYear');
-    const monthSelect = document.getElementById('payMonth');
+    const y = document.getElementById('payYear');
+    const m = document.getElementById('payMonth');
 
-    const currentYear = new Date().getFullYear();
+    const now = new Date().getFullYear();
 
-    for (let y = currentYear - 1; y <= currentYear + 1; y++) {
-        yearSelect.innerHTML += `<option value="${y}">${y}</option>`;
+    for (let i = now - 1; i <= now + 1; i++) {
+        y.innerHTML += `<option value="${i}">${i}</option>`;
     }
 
-    for (let m = 1; m <= 12; m++) {
-        monthSelect.innerHTML += `<option value="${m}">${m}</option>`;
+    for (let i = 1; i <= 12; i++) {
+        m.innerHTML += `<option value="${i}">${i}</option>`;
     }
 
-    yearSelect.value = currentYear;
-    monthSelect.value = new Date().getMonth() + 1;
+    y.value = now;
+    m.value = new Date().getMonth() + 1;
 }
 
 function generateTable() {
 
-    const payYear = Number(document.getElementById('payYear').value);
-    const payMonth = Number(document.getElementById('payMonth').value);
+    const year = Number(document.getElementById('payYear').value);
+    const month = Number(document.getElementById('payMonth').value);
 
-    const startDate = new Date(payYear, payMonth - 3, 21);
-    const endDate = new Date(payYear, payMonth - 2, 20);
+    const start = new Date(year, month - 3, 21);
+    const end = new Date(year, month - 2, 20);
 
     document.getElementById('period').textContent =
-        `対象期間：${formatDate(startDate)} ～ ${formatDate(endDate)}`;
+        `${start.toLocaleDateString()} ～ ${end.toLocaleDateString()}`;
 
     const tbody = document.getElementById('workTable');
     tbody.innerHTML = '';
 
-    let current = new Date(startDate);
+    let d = new Date(start);
 
-    while (current <= endDate) {
+    while (d <= end) {
 
         const tr = document.createElement('tr');
-        const weekday = current.getDay();
+        const w = d.getDay();
 
-        if (weekday === 0 || weekday === 6) {
-            tr.classList.add('weekend');
-        }
+        if (w === 0 || w === 6) tr.classList.add('weekend');
 
-        const key = formatDate(current);
+        const key = `${d.getMonth()+1}/${d.getDate()}`;
 
         tr.innerHTML = `
             <td>${key}</td>
-            <td>${WEEKDAYS[weekday]}</td>
-            <td>
-                <input type="time" class="endTime" data-date="${key}">
-            </td>
+            <td>${WEEKDAYS[w]}</td>
+            <td><input type="time" class="endTime"></td>
         `;
 
         tbody.appendChild(tr);
-        current.setDate(current.getDate() + 1);
+        d.setDate(d.getDate() + 1);
     }
 
-    loadData();
-
-    document.querySelectorAll('.endTime').forEach(input => {
-        input.addEventListener('change', () => {
-            calculate();
-            saveData();
-        });
-    });
+    document.querySelectorAll('.endTime')
+        .forEach(e => e.addEventListener('input', calculate));
 
     calculate();
 }
 
-function formatDate(date) {
-    return `${date.getMonth() + 1}/${date.getDate()}`;
-}
+function calcIncomeTax(annual) {
 
-function getSocialInsurance(annualIncome) {
-    return annualIncome * 0.15;
-}
+    // 社保を現実寄せ（約13%）
+    const social = annual * 0.13;
 
-function calculateWithExtra(hourlyRate, extraHours) {
-    return hourlyRate * extraHours * 1.25;
-}
-
-function calcIncomeTax(annualIncome) {
-
-    const social = annualIncome * 0.15;
-    const taxable = Math.max(0, annualIncome - social - 480000);
+    const taxable = Math.max(0, annual - social - 550000);
 
     let tax = 0;
 
@@ -266,133 +190,67 @@ function calcIncomeTax(annualIncome) {
         tax = taxable * 0.10 - 97500;
     } else if (taxable <= 6950000) {
         tax = taxable * 0.20 - 427500;
-    } else if (taxable <= 9000000) {
-        tax = taxable * 0.23 - 636000;
-    } else if (taxable <= 18000000) {
-        tax = taxable * 0.33 - 1536000;
     } else {
-        tax = taxable * 0.40;
+        tax = taxable * 0.23;
     }
 
-    return Math.max(0, tax);
+    // 源泉徴収っぽい補正
+    return Math.max(0, tax * 0.75);
+}
+
+function calcSocial(annual) {
+    return annual * 0.13;
 }
 
 function calculate() {
 
-    const baseSalary = Number(document.getElementById('baseSalary').value);
-    const scheduledHours = Number(document.getElementById('scheduledHours').value);
+    const base = Number(document.getElementById('baseSalary').value);
+    const hours = Number(document.getElementById('scheduledHours').value);
 
-    if (!baseSalary || !scheduledHours) return;
+    if (!base || !hours) return;
 
-    const hourlyRate = baseSalary / scheduledHours;
+    const hourly = base / hours;
 
-    let normalMinutes = 0;
-    let overtimeMinutes = 0;
+    let overtime = 0;
 
-    document.querySelectorAll('.endTime').forEach(input => {
+    document.querySelectorAll('.endTime').forEach(i => {
 
-        if (!input.value) return;
+        if (!i.value) return;
 
-        const [hour, minute] = input.value.split(':').map(Number);
-        const end = hour * 60 + minute;
+        const [h,m] = i.value.split(':').map(Number);
+        const end = h * 60 + m;
 
-        const normalStart = 17 * 60 + 45;
-        const overtimeStart = 18 * 60;
+        const normalEnd = 17*60+45;
+        const otStart = 18*60;
 
-        if (end > normalStart) {
-            normalMinutes += Math.min(end, overtimeStart) - normalStart;
-        }
-
-        if (end > overtimeStart) {
-            overtimeMinutes += end - overtimeStart;
+        if (end > otStart) {
+            overtime += (end - otStart);
         }
     });
 
-    const normalPay = hourlyRate * (normalMinutes / 60);
-    const overtimePay = hourlyRate * 1.25 * (overtimeMinutes / 60);
-    const totalPay = normalPay + overtimePay;
-    const grossSalary = baseSalary + totalPay;
+    const overtimePay = hourly * 1.25 * (overtime/60);
+    const gross = base + overtimePay;
 
-    const extraHours = Number(document.getElementById('extraOvertime').value);
-    const extraPay = calculateWithExtra(hourlyRate, extraHours);
+    const annual = gross * 12;
 
-    const finalGrossSalary = grossSalary + extraPay;
+    const social = calcSocial(annual) / 12;
+    const income = calcIncomeTax(annual) / 12;
 
-    const annualIncome = finalGrossSalary * 12;
+    const resident = Number(document.getElementById('residentTax').value || 0);
 
-    const socialInsurance = getSocialInsurance(annualIncome) / 12;
-    const incomeTax = calcIncomeTax(annualIncome) / 12;
+    const net = gross - social - income - resident;
 
-    const residentTax = Number(document.getElementById('residentTax').value || 0);
+    document.getElementById('hourlyRate').textContent = Math.round(hourly);
+    document.getElementById('totalPay').textContent = Math.round(overtimePay);
+    document.getElementById('grossSalary').textContent = Math.round(gross);
 
-    const netSalary =
-        finalGrossSalary - socialInsurance - incomeTax - residentTax;
-
-    document.getElementById('hourlyRate').textContent = Math.round(hourlyRate).toLocaleString();
-    document.getElementById('normalTime').textContent = `${Math.floor(normalMinutes / 60)}時間${normalMinutes % 60}分`;
-    document.getElementById('normalPay').textContent = Math.round(normalPay).toLocaleString();
-    document.getElementById('overtimeTime').textContent = `${Math.floor(overtimeMinutes / 60)}時間${overtimeMinutes % 60}分`;
-    document.getElementById('overtimePay').textContent = Math.round(overtimePay).toLocaleString();
-    document.getElementById('totalPay').textContent = Math.round(totalPay).toLocaleString();
-    document.getElementById('grossSalary').textContent = Math.round(finalGrossSalary).toLocaleString();
-
-    document.getElementById('incomeTax').textContent = Math.round(incomeTax).toLocaleString();
-    document.getElementById('socialInsurance').textContent = Math.round(socialInsurance).toLocaleString();
-    document.getElementById('netSalary').textContent = Math.round(netSalary).toLocaleString();
+    document.getElementById('incomeTax').textContent = Math.round(income);
+    document.getElementById('socialInsurance').textContent = Math.round(social);
+    document.getElementById('netSalary').textContent = Math.round(net);
 }
 
-function saveData() {
-
-    const key = `salary_${document.getElementById('payYear').value}_${document.getElementById('payMonth').value}`;
-
-    const data = {
-        baseSalary: document.getElementById('baseSalary').value,
-        scheduledHours: document.getElementById('scheduledHours').value,
-        times: {}
-    };
-
-    document.querySelectorAll('.endTime').forEach(input => {
-        data.times[input.dataset.date] = input.value;
-    });
-
-    localStorage.setItem(key, JSON.stringify(data));
-}
-
-function loadData() {
-
-    const key = `salary_${document.getElementById('payYear').value}_${document.getElementById('payMonth').value}`;
-
-    const saved = localStorage.getItem(key);
-    if (!saved) return;
-
-    const data = JSON.parse(saved);
-
-    document.getElementById('baseSalary').value = data.baseSalary || '';
-    document.getElementById('scheduledHours').value = data.scheduledHours || '';
-
-    document.querySelectorAll('.endTime').forEach(input => {
-        input.value = data.times[input.dataset.date] || '';
-    });
-}
-
-document.getElementById('baseSalary').addEventListener('input', () => {
-    calculate();
-    saveData();
-});
-
-document.getElementById('scheduledHours').addEventListener('input', () => {
-    calculate();
-    saveData();
-});
-
-document.getElementById('payYear').addEventListener('change', generateTable);
-document.getElementById('payMonth').addEventListener('change', generateTable);
-
-document.getElementById('extraOvertime').addEventListener('input', (e) => {
-    document.getElementById('extraOvertimeLabel').textContent = `${e.target.value}時間`;
-    calculate();
-});
-
+document.getElementById('baseSalary').addEventListener('input', calculate);
+document.getElementById('scheduledHours').addEventListener('input', calculate);
 document.getElementById('residentTax').addEventListener('input', calculate);
 
 initSelectors();
