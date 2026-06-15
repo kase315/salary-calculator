@@ -51,20 +51,24 @@ th,td{border:1px solid #ccc;padding:8px;text-align:center}
 </div>
 
 <div class="card">
-<label>標準報酬等級</label>
+<label>住民税（月）</label>
+<input type="number" id="residentTax" value="0">
+</div>
+
+<div class="card">
+<label>標準報酬等級（表示）</label>
 <select id="socialSelect"></select>
 </div>
 
 <div class="card summary">
 <div>時間単価 <span id="hourlyRate">0</span></div>
-<div>割増なし時間 <span id="normalTime">0</span></div>
 <div>割増なし残業代 <span id="normalPay">0</span></div>
-<div>割増時間 <span id="overtimeTime">0</span></div>
 <div>割増残業代 <span id="overtimePay">0</span></div>
-
 <div>総残業代 <span id="totalPay">0</span></div>
+
 <div>社保 <span id="socialPay">0</span></div>
 <div>所得税 <span id="incomeTax">0</span></div>
+<div>住民税 <span id="residentTaxOut">0</span></div>
 
 <h2>額面 <span id="grossSalary">0</span></h2>
 <h2>手取り <span id="netSalary">0</span></h2>
@@ -117,16 +121,27 @@ let y=document.getElementById('payYear');
 let m=document.getElementById('payMonth');
 let s=document.getElementById('socialSelect');
 let now=new Date().getFullYear();
+
 for(let i=now-1;i<=now+1;i++)y.innerHTML+=`<option>${i}</option>`;
 for(let i=1;i<=12;i++)m.innerHTML+=`<option>${i}</option>`;
 SOCIAL.forEach((v,i)=>s.innerHTML+=`<option value="${i}">${v.min}〜${v.max}</option>`);
+
 y.value=now;
 m.value=new Date().getMonth()+1;
 }
 
-function getSocial(v){
-let r=SOCIAL.find(x=>v>=x.min&&v<x.max);
-return r?r.val:0;
+function getSocial(gross){
+for(let i=0;i<SOCIAL.length;i++){
+if(gross>=SOCIAL[i].min&&gross<SOCIAL[i].max)return SOCIAL[i].val;
+}
+return SOCIAL[SOCIAL.length-1].val;
+}
+
+function getSocialIndex(gross){
+for(let i=0;i<SOCIAL.length;i++){
+if(gross>=SOCIAL[i].min&&gross<SOCIAL[i].max)return i;
+}
+return SOCIAL.length-1;
 }
 
 function incomeTax(g){
@@ -138,15 +153,19 @@ else if(a<=3600000)s=a*0.3+80000;
 else if(a<=6600000)s=a*0.2+440000;
 else if(a<=8500000)s=a*0.1+1100000;
 else s=1950000;
+
 let basic=480000;
 let social=getSocial(g)*12;
+
 let t=Math.max(0,a-s-basic-social);
+
 let tax;
 if(t<=1950000)tax=t*0.05;
 else if(t<=3300000)tax=t*0.1-97500;
 else if(t<=6950000)tax=t*0.2-427500;
 else if(t<=9000000)tax=t*0.23-636000;
 else tax=t*0.33-1536000;
+
 return Math.max(0,Math.round(tax/12));
 }
 
@@ -155,16 +174,26 @@ let y=+document.getElementById('payYear').value;
 let m=+document.getElementById('payMonth').value;
 let s=new Date(y,m-3,21);
 let e=new Date(y,m-2,20);
-document.getElementById('period').textContent=s.toLocaleDateString()+"〜"+e.toLocaleDateString();
+
+document.getElementById('period').textContent=
+`${s.getMonth()+1}/${s.getDate()}〜${e.getMonth()+1}/${e.getDate()}`;
+
 let b=document.getElementById('workTable');
 b.innerHTML="";
+
 for(let d=new Date(s);d<=e;d.setDate(d.getDate()+1)){
 let tr=document.createElement('tr');
 if(d.getDay()==0||d.getDay()==6)tr.className="weekend";
+
 let k=(d.getMonth()+1)+"/"+d.getDate();
-tr.innerHTML=`<td>${k}</td><td>${WEEKDAYS[d.getDay()]}</td><td><input type="time" class="t" data-k="${k}"></td>`;
+
+tr.innerHTML=
+`<td>${k}</td><td>${WEEKDAYS[d.getDay()]}</td>
+<td><input type="time" class="t" data-k="${k}"></td>`;
+
 b.appendChild(tr);
 }
+
 calc();
 document.querySelectorAll('.t').forEach(x=>x.onchange=()=>{calc();save();});
 load();
@@ -173,39 +202,57 @@ load();
 function calc(){
 let base=+document.getElementById('baseSalary').value;
 let h=+document.getElementById('scheduledHours').value;
+
 if(!base||!h)return;
+
 let rate=base/h;
+
 let n=0,o=0;
+
 document.querySelectorAll('.t').forEach(x=>{
 if(!x.value)return;
+
 let [hh,mm]=x.value.split(':').map(Number);
 let end=hh*60+mm;
-if(end>1065)n+=Math.min(end,1080)-1065;
-if(end>1080)o+=end-1080;
+
+let normalEnd=1065;
+let overtimeStart=1080;
+
+if(end>normalEnd)n+=Math.min(end,overtimeStart)-normalEnd;
+if(end>overtimeStart)o+=end-overtimeStart;
 });
+
 let normal=rate*(n/60);
 let over=rate*1.25*(o/60);
+
 let total=normal+over;
 let gross=base+total;
+
 let social=getSocial(gross);
 let tax=incomeTax(gross);
-let net=gross-social-tax;
+let resident=+document.getElementById('residentTax').value||0;
+
+let net=gross-social-tax-resident;
 
 document.getElementById('hourlyRate').textContent=Math.round(rate);
 document.getElementById('normalPay').textContent=Math.round(normal);
 document.getElementById('overtimePay').textContent=Math.round(over);
 document.getElementById('totalPay').textContent=Math.round(total);
+
 document.getElementById('grossSalary').textContent=Math.round(gross);
 document.getElementById('socialPay').textContent=social;
 document.getElementById('incomeTax').textContent=tax;
+document.getElementById('residentTaxOut').textContent=resident;
 document.getElementById('netSalary').textContent=Math.round(net);
 
-let idx=SOCIAL.findIndex(x=>gross>=x.min&&gross<x.max);
-if(idx>=0)document.getElementById('socialSelect').value=idx;
+let idx=getSocialIndex(gross);
+document.getElementById('socialSelect').value=idx;
 }
 
 function save(){
-localStorage.setItem("d",JSON.stringify([...document.querySelectorAll('.t')].map(x=>[x.dataset.k,x.value])));
+localStorage.setItem("d",
+JSON.stringify([...document.querySelectorAll('.t')].map(x=>[x.dataset.k,x.value]))
+);
 }
 
 function load(){
@@ -218,6 +265,7 @@ if(x)x.value=v;
 
 document.getElementById('baseSalary').oninput=calc;
 document.getElementById('scheduledHours').oninput=calc;
+document.getElementById('residentTax').oninput=calc;
 
 initSelectors();
 generateTable();
