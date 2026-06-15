@@ -59,19 +59,42 @@ th,td{border:1px solid #ccc;padding:8px;text-align:center;}
 </div>
 
 <script>
-const TABLE=[
-{min:58000,health:2822,pension:8052},{min:63000,health:3308,pension:8967},{min:73000,health:3794,pension:9516},
-{min:83000,health:4281,pension:10065},{min:93000,health:4767,pension:10797},{min:101000,health:5059,pension:11529},
-{min:107000,health:5351,pension:12261},{min:114000,health:5740,pension:12993},{min:122000,health:6130,pension:13725},
-{min:130000,health:6519,pension:14640},{min:138000,health:6908,pension:15555},{min:146000,health:7297,pension:16470},
-{min:155000,health:7784,pension:17385},{min:165000,health:8271,pension:18300},{min:175000,health:8757,pension:20130},
-{min:185000,health:9243,pension:21960},{min:195000,health:9730,pension:23790},{min:210000,health:10703,pension:25320},
-{min:230000,health:11676,pension:27600},{min:250000,health:12649,pension:29900},{min:270000,health:13622,pension:32200},
-{min:290000,health:14595,pension:34500},{min:310000,health:15568,pension:36800},{min:330000,health:16541,pension:39100},
-{min:350000,health:17514,pension:41400},{min:370000,health:18487,pension:43700},{min:395000,health:19946,pension:47500},
-{min:425000,health:21406,pension:50600},{min:455000,health:22865,pension:54050},{min:485000,health:24325,pension:57500},
-{min:515000,health:25784,pension:60950},{min:545000,health:27244,pension:64400},{min:575000,health:28703,pension:67850},
-{min:605000,health:30163,pension:71300},{min:635000,health:31622,pension:74750}
+const TABLE = [
+    {min: 58000, health: 2994, pension: 8235},    // 8.8万以下
+    {min: 63000, health: 3194, pension: 8784},    // 9.3万
+    {min: 73000, health: 3593, pension: 9699},    // 10.4万
+    {min: 83000, health: 3992, pension: 10614},   // 11.6万
+    {min: 93000, health: 4391, pension: 11529},   // 12.6万
+    {min: 101000, health: 4790, pension: 12444},  // 13.8万
+    {min: 107000, health: 5189, pension: 13359},  // 15.0万
+    {min: 114000, health: 5589, pension: 14274},  // 16.2万
+    {min: 122000, health: 5988, pension: 15189},  // 17.4万
+    {min: 130000, health: 6587, pension: 16562},  // 19.0万
+    {min: 138000, health: 7185, pension: 18398},  // 21.0万
+    {min: 146000, health: 7784, pension: 20234},  // 23.0万
+    {min: 155000, health: 8383, pension: 22070},  // 25.0万
+    {min: 165000, health: 8982, pension: 23906},  // 27.0万
+    {min: 175000, health: 9581, pension: 25742},  // 29.0万
+    {min: 185000, health: 10180, pension: 27578}, // 31.0万
+    {min: 195000, health: 10778, pension: 29414}, // 33.0万
+    {min: 210000, health: 11377, pension: 31250}, // 35.0万
+    {min: 230000, health: 12375, pension: 33086}, // 37.0万
+    {min: 250000, health: 13373, pension: 36758}, // 41.0万
+    {min: 270000, health: 14371, pension: 40430}, // 45.0万
+    {min: 290000, health: 15369, pension: 44102}, // 49.0万
+    {min: 310000, health: 16367, pension: 47774}, // 53.0万
+    {min: 330000, health: 17365, pension: 51446}, // 57.0万
+    {min: 350000, health: 18363, pension: 55118}, // 61.0万
+    {min: 370000, health: 19361, pension: 58790}, // 65.0万
+    {min: 395000, health: 20359, pension: 62462}, // 69.0万
+    {min: 425000, health: 21357, pension: 66134}, // 73.0万
+    {min: 455000, health: 22854, pension: 71642}, // 79.0万
+    {min: 485000, health: 24351, pension: 77150}, // 85.0万
+    {min: 515000, health: 25848, pension: 82658}, // 91.0万
+    {min: 545000, health: 27345, pension: 88166}, // 97.0万
+    {min: 575000, health: 28842, pension: 93674}, // 103.0万
+    {min: 605000, health: 30339, pension: 99182}, // 109.0万
+    {min: 635000, health: 31836, pension: 104690} // 115.0万
 ];
 
 // 等級選択肢の初期化
