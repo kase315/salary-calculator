@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>給与見込み計算（完全版）</title>
+<title>給与見込み計算（月次対応版）</title>
 <style>
 body{font-family:sans-serif;max-width:900px;margin:20px auto;padding:10px;background:#f5f5f5;}
 .card{background:#fff;padding:15px;margin-bottom:15px;border-radius:10px;}
@@ -18,14 +18,19 @@ th,td{border:1px solid #ccc;padding:8px;text-align:center;}
 <h1>給与見込み計算</h1>
 
 <div class="card">
+<label>給与支給月</label>
+<select id="payYear"></select>年
+<select id="payMonth"></select>月支給分
+<button onclick="generateTable()">勤務表リセット</button>
+<br>
 <label>基本給</label>
 <input type="number" id="baseSalary">
 <label>所定労働時間</label>
 <input type="number" id="scheduledHours">
-<button onclick="generateTable()">勤務表リセット</button>
 </div>
 
 <div class="card">
+<div id="periodLabel" style="font-weight:bold; margin-bottom:10px;"></div>
 <table>
 <thead><tr><th>日付</th><th>曜日</th><th>退勤</th></tr></thead>
 <tbody id="workTable"></tbody>
@@ -60,7 +65,6 @@ th,td{border:1px solid #ccc;padding:8px;text-align:center;}
 </div>
 
 <script>
-// image_be11e5.png のデータを全網羅
 const TABLE = [
     {min:58000, h:2821.7, p:8052, c:66.7}, {min:63000, h:3308.2, p:8967, c:78.2}, {min:73000, h:3794.7, p:9516, c:89.7},
     {min:83000, h:4281.2, p:10065, c:101.2}, {min:93000, h:4767.7, p:10797, c:112.7}, {min:101000, h:5059.6, p:11529, c:119.6},
@@ -81,87 +85,83 @@ const TABLE = [
     {min:1295000, h:64704.5, p:102000, c:1529.5}, {min:1355000, h:67623.5, p:105000, c:1598.5}
 ];
 
-function initGradeSelect() {
-    const sel = document.getElementById("grade");
+function init(){
+    const ySel = document.getElementById("payYear");
+    const mSel = document.getElementById("payMonth");
+    const now = new Date();
+    for(let i=0; i<3; i++) ySel.innerHTML += `<option>${now.getFullYear()+i}</option>`;
+    for(let i=1; i<=12; i++) mSel.innerHTML += `<option>${i}</option>`;
+    mSel.value = now.getMonth()+1;
+
     TABLE.forEach((item, index) => {
-        const opt = document.createElement("option");
-        opt.value = index;
-        opt.textContent = `等級${index + 1} (報酬目安: ${item.min.toLocaleString()}〜)`;
-        sel.appendChild(opt);
+        document.getElementById("grade").innerHTML += `<option value="${index}">等級${index + 1} (目安:${item.min.toLocaleString()}〜)</option>`;
     });
+
+    [ySel, mSel, document.getElementById("baseSalary"), document.getElementById("scheduledHours"), document.getElementById("residentTax"), document.getElementById("grade")].forEach(el => el.onchange = generateTable);
+    generateTable();
 }
 
 function getGrade(gross){
-    for(let i=TABLE.length-1;i>=0;i--){
-        if(gross>=TABLE[i].min) return TABLE[i];
-    }
+    for(let i=TABLE.length-1; i>=0; i--) if(gross >= TABLE[i].min) return TABLE[i];
     return TABLE[0];
 }
 
-function calc(){
-    const base = parseFloat(document.getElementById("baseSalary").value) || 0;
-    const sched = parseFloat(document.getElementById("scheduledHours").value) || 0;
-    if(base === 0 || sched === 0) return;
+function generateTable(){
+    const y = +document.getElementById("payYear").value;
+    const m = +document.getElementById("payMonth").value;
+    
+    // 計算対象：支給月の前々月21日～前月20日
+    const start = new Date(y, m-3, 21);
+    const end = new Date(y, m-2, 20);
+    document.getElementById("periodLabel").textContent = `計算対象期間：${start.getMonth()+1}/${start.getDate()} ～ ${end.getMonth()+1}/${end.getDate()}`;
 
-    const hourly = base / sched;
+    const tbody = document.getElementById("workTable");
+    tbody.innerHTML = "";
+    for(let d=new Date(start); d<=end; d.setDate(d.getDate()+1)){
+        const tr = document.createElement("tr");
+        if(d.getDay()===0 || d.getDay()===6) tr.classList.add("weekend");
+        tr.innerHTML = `<td>${d.getMonth()+1}/${d.getDate()}</td><td>${["日","月","火","水","木","金","土"][d.getDay()]}</td><td><input type="time" class="t" oninput="calc()"></td>`;
+        tbody.appendChild(tr);
+    }
+    calc();
+}
+
+function calc(){
+    const base = +document.getElementById("baseSalary").value || 0;
+    const sched = +document.getElementById("scheduledHours").value || 0;
+    if(!base || !sched) return;
+
     let ot = 0;
-    document.querySelectorAll(".t").forEach(i=>{
-        if(!i.value) return;
-        const [h,m] = i.value.split(":").map(Number);
-        const end = h * 60 + m;
-        if(end > 1080) ot += (end - 1080);
+    document.querySelectorAll(".t").forEach(i => {
+        if(i.value){
+            const [h,m] = i.value.split(":").map(Number);
+            if(h*60+m > 1080) ot += (h*60+m - 1080);
+        }
     });
 
-    const otPay = hourly * 1.25 * ot / 60;
+    const otPay = (base/sched) * 1.25 * ot / 60;
     const gross = base + otPay;
-    
-    const gradeVal = document.getElementById("grade").value;
-    const grade = (gradeVal === "auto") ? getGrade(gross) : TABLE[gradeVal];
+    const gVal = document.getElementById("grade").value;
+    const grade = (gVal === "auto") ? getGrade(gross) : TABLE[gVal];
 
-    const health = grade.h;
-    const pension = grade.p;
-    const child = grade.c;
-    const employment = Math.round(gross * 0.006);
-    const social = Math.round(health + pension + child + employment);
-    const income = Math.round(gross * 0.035 / 12);
-    const resident = parseFloat(document.getElementById("residentTax").value) || 0;
-    const net = gross - social - income - resident;
+    const social = Math.round(grade.h + grade.p + grade.c + (gross * 0.006));
+    const net = Math.round(gross - social - (gross * 0.035 / 12) - (+document.getElementById("residentTax").value || 0));
 
-    document.getElementById("hourly").textContent = Math.round(hourly);
+    document.getElementById("hourly").textContent = Math.round(base/sched);
     document.getElementById("otTime").textContent = `${Math.floor(ot/60)}h${ot%60}m`;
     document.getElementById("otPay").textContent = Math.round(otPay);
     document.getElementById("gross").textContent = Math.round(gross);
-    document.getElementById("health").textContent = Math.round(health);
-    document.getElementById("pension").textContent = Math.round(pension);
-    document.getElementById("child").textContent = Math.round(child);
-    document.getElementById("employment").textContent = employment;
+    document.getElementById("health").textContent = Math.round(grade.h);
+    document.getElementById("pension").textContent = Math.round(grade.p);
+    document.getElementById("child").textContent = Math.round(grade.c);
+    document.getElementById("employment").textContent = Math.round(gross * 0.006);
     document.getElementById("social").textContent = social;
-    document.getElementById("income").textContent = income;
-    document.getElementById("resident").textContent = resident;
-    document.getElementById("net").textContent = Math.round(net);
+    document.getElementById("income").textContent = Math.round(gross * 0.035 / 12);
+    document.getElementById("resident").textContent = document.getElementById("residentTax").value;
+    document.getElementById("net").textContent = net;
 }
 
-function generateTable(){
-    const y=2026, m=6;
-    const start=new Date(y,m-1,21), end=new Date(y,m,20);
-    const workTable = document.getElementById("workTable");
-    workTable.innerHTML="";
-    for(let d=new Date(start); d<=end; d.setDate(d.getDate()+1)){
-        const tr=document.createElement("tr");
-        const w=d.getDay();
-        if(w===0||w===6) tr.classList.add("weekend");
-        tr.innerHTML=`<td>${d.getMonth()+1}/${d.getDate()}</td><td>${["日","月","火","水","木","金","土"][w]}</td><td><input type="time" class="t"></td>`;
-        workTable.appendChild(tr);
-    }
-    document.querySelectorAll(".t").forEach(i=>i.oninput=calc);
-}
-
-initGradeSelect();
-document.getElementById("baseSalary").oninput = calc;
-document.getElementById("scheduledHours").oninput = calc;
-document.getElementById("residentTax").oninput = calc;
-document.getElementById("grade").onchange = calc;
-generateTable();
+init();
 </script>
 </body>
 </html>
