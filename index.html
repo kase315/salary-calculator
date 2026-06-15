@@ -56,7 +56,7 @@ th,td{border:1px solid #ccc;padding:8px;text-align:center}
 </div>
 
 <div class="card">
-<label>標準報酬等級（表示）</label>
+<label>標準報酬等級（プルダウン）</label>
 <select id="socialSelect"></select>
 </div>
 
@@ -120,21 +120,24 @@ function initSelectors(){
 let y=document.getElementById('payYear');
 let m=document.getElementById('payMonth');
 let s=document.getElementById('socialSelect');
+
 let now=new Date().getFullYear();
 
 for(let i=now-1;i<=now+1;i++)y.innerHTML+=`<option>${i}</option>`;
 for(let i=1;i<=12;i++)m.innerHTML+=`<option>${i}</option>`;
-SOCIAL.forEach((v,i)=>s.innerHTML+=`<option value="${i}">${v.min}〜${v.max}</option>`);
+
+// プルダウンに等級表示
+SOCIAL.forEach((v,i)=>{
+s.innerHTML+=`<option value="${i}">${v.min}〜${v.max}</option>`;
+});
 
 y.value=now;
 m.value=new Date().getMonth()+1;
 }
 
-function getSocial(gross){
-for(let i=0;i<SOCIAL.length;i++){
-if(gross>=SOCIAL[i].min&&gross<SOCIAL[i].max)return SOCIAL[i].val;
-}
-return SOCIAL[SOCIAL.length-1].val;
+/* 社保（プルダウン優先） */
+function getSocialByIndex(i){
+return SOCIAL[i].val;
 }
 
 function getSocialIndex(gross){
@@ -144,9 +147,11 @@ if(gross>=SOCIAL[i].min&&gross<SOCIAL[i].max)return i;
 return SOCIAL.length-1;
 }
 
+/* 所得税 */
 function incomeTax(g){
 let a=g*12;
 let s;
+
 if(a<=1625000)s=550000;
 else if(a<=1800000)s=a*0.4-100000;
 else if(a<=3600000)s=a*0.3+80000;
@@ -155,7 +160,7 @@ else if(a<=8500000)s=a*0.1+1100000;
 else s=1950000;
 
 let basic=480000;
-let social=getSocial(g)*12;
+let social=getSocialByIndex(+document.getElementById('socialSelect').value)*12;
 
 let t=Math.max(0,a-s-basic-social);
 
@@ -172,6 +177,7 @@ return Math.max(0,Math.round(tax/12));
 function generateTable(){
 let y=+document.getElementById('payYear').value;
 let m=+document.getElementById('payMonth').value;
+
 let s=new Date(y,m-3,21);
 let e=new Date(y,m-2,20);
 
@@ -228,7 +234,13 @@ let over=rate*1.25*(o/60);
 let total=normal+over;
 let gross=base+total;
 
-let social=getSocial(gross);
+/* 社保（プルダウン反映） */
+let idx=+document.getElementById('socialSelect').value;
+let social=getSocialByIndex(idx);
+
+/* プルダウン自動補正（参考表示） */
+document.getElementById('socialSelect').value=getSocialIndex(gross);
+
 let tax=incomeTax(gross);
 let resident=+document.getElementById('residentTax').value||0;
 
@@ -244,9 +256,6 @@ document.getElementById('socialPay').textContent=social;
 document.getElementById('incomeTax').textContent=tax;
 document.getElementById('residentTaxOut').textContent=resident;
 document.getElementById('netSalary').textContent=Math.round(net);
-
-let idx=getSocialIndex(gross);
-document.getElementById('socialSelect').value=idx;
 }
 
 function save(){
