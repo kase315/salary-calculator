@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>給与見込み計算</title>
+<title>給与見込み計算（千葉支部版）</title>
 <style>
 body{font-family:sans-serif;max-width:900px;margin:20px auto;padding:10px;background:#f5f5f5;}
 .card{background:#fff;padding:15px;margin-bottom:15px;border-radius:10px;}
@@ -59,51 +59,41 @@ th,td{border:1px solid #ccc;padding:8px;text-align:center;}
 </div>
 
 <script>
-const TABLE = [
-    {min: 58000, health: 2994, pension: 8235},    // 8.8万以下
-    {min: 63000, health: 3194, pension: 8784},    // 9.3万
-    {min: 73000, health: 3593, pension: 9699},    // 10.4万
-    {min: 83000, health: 3992, pension: 10614},   // 11.6万
-    {min: 93000, health: 4391, pension: 11529},   // 12.6万
-    {min: 101000, health: 4790, pension: 12444},  // 13.8万
-    {min: 107000, health: 5189, pension: 13359},  // 15.0万
-    {min: 114000, health: 5589, pension: 14274},  // 16.2万
-    {min: 122000, health: 5988, pension: 15189},  // 17.4万
-    {min: 130000, health: 6587, pension: 16562},  // 19.0万
-    {min: 138000, health: 7185, pension: 18398},  // 21.0万
-    {min: 146000, health: 7784, pension: 20234},  // 23.0万
-    {min: 155000, health: 8383, pension: 22070},  // 25.0万
-    {min: 165000, health: 8982, pension: 23906},  // 27.0万
-    {min: 175000, health: 9581, pension: 25742},  // 29.0万
-    {min: 185000, health: 10180, pension: 27578}, // 31.0万
-    {min: 195000, health: 10778, pension: 29414}, // 33.0万
-    {min: 210000, health: 11377, pension: 31250}, // 35.0万
-    {min: 230000, health: 12375, pension: 33086}, // 37.0万
-    {min: 250000, health: 13373, pension: 36758}, // 41.0万
-    {min: 270000, health: 14371, pension: 40430}, // 45.0万
-    {min: 290000, health: 15369, pension: 44102}, // 49.0万
-    {min: 310000, health: 16367, pension: 47774}, // 53.0万
-    {min: 330000, health: 17365, pension: 51446}, // 57.0万
-    {min: 350000, health: 18363, pension: 55118}, // 61.0万
-    {min: 370000, health: 19361, pension: 58790}, // 65.0万
-    {min: 395000, health: 20359, pension: 62462}, // 69.0万
-    {min: 425000, health: 21357, pension: 66134}, // 73.0万
-    {min: 455000, health: 22854, pension: 71642}, // 79.0万
-    {min: 485000, health: 24351, pension: 77150}, // 85.0万
-    {min: 515000, health: 25848, pension: 82658}, // 91.0万
-    {min: 545000, health: 27345, pension: 88166}, // 97.0万
-    {min: 575000, health: 28842, pension: 93674}, // 103.0万
-    {min: 605000, health: 30339, pension: 99182}, // 109.0万
-    {min: 635000, health: 31836, pension: 104690} // 115.0万
+// ご提示いただいた千葉支部テーブルを反映（折半額）
+const TABLE=[
+    {min:58000, health:2822, pension:8052}, {min:63000, health:3308, pension:8967},
+    {min:73000, health:3795, pension:9516}, {min:83000, health:4281, pension:10065},
+    {min:93000, health:4768, pension:10797}, {min:101000, health:5060, pension:11529},
+    {min:107000, health:5352, pension:12261}, {min:114000, health:5741, pension:12993},
+    {min:122000, health:6130, pension:13725}, {min:130000, health:6519, pension:14640},
+    {min:138000, health:6908, pension:15555}, {min:146000, health:7298, pension:16470},
+    {min:155000, health:7784, pension:17385}, {min:165000, health:8271, pension:18300},
+    {min:175000, health:8757, pension:19295}, {min:185000, health:9244, pension:20130},
+    {min:195000, health:9730, pension:21960}, {min:210000, health:10703, pension:23790},
+    {min:230000, health:11676, pension:25620}, {min:250000, health:12649, pension:27450},
+    {min:270000, health:13622, pension:29280}, {min:290000, health:14595, pension:31110},
+    {min:310000, health:15568, pension:32940}, {min:330000, health:16541, pension:34770},
+    {min:350000, health:17514, pension:37515}, {min:370000, health:18487, pension:40260},
+    {min:395000, health:19947, pension:43005}, {min:425000, health:21406, pension:45750},
+    {min:455000, health:22866, pension:48495}, {min:485000, health:24325, pension:51240},
+    {min:515000, health:25785, pension:53985}, {min:545000, health:27244, pension:56730},
+    {min:575000, health:28704, pension:59475}, {min:605000, health:30163, pension:61000},
+    {min:635000, health:31623, pension:63000}, {min:665000, health:33082, pension:65000},
+    {min:695000, health:34542, pension:67000}, {min:730000, health:36488, pension:69000},
+    {min:770000, health:38434, pension:72000}, {min:810000, health:40380, pension:75000},
+    {min:855000, health:42812, pension:78000}, {min:905000, health:45245, pension:81000},
+    {min:955000, health:47677, pension:84000}, {min:1005000, health:50110, pension:87000},
+    {min:1055000, health:53029, pension:90000}, {min:1115000, health:55948, pension:93000},
+    {min:1175000, health:58867, pension:96000}, {min:1235000, health:61786, pension:99000},
+    {min:1295000, health:64705, pension:102000}, {min:1355000, health:67624, pension:105000}
 ];
 
-// 等級選択肢の初期化
 function initGradeSelect() {
     const sel = document.getElementById("grade");
     TABLE.forEach((item, index) => {
         const opt = document.createElement("option");
         opt.value = index;
-        opt.textContent = `等級${index + 1} (給与目安: ${item.min}〜)`;
+        opt.textContent = `等級${index + 1} (報酬目安: ${item.min.toLocaleString()}〜)`;
         sel.appendChild(opt);
     });
 }
@@ -132,13 +122,12 @@ function calc(){
     const otPay = hourly * 1.25 * ot / 60;
     const gross = base + otPay;
     
-    // 等級判定（手動選択があればそれを優先）
     const gradeVal = document.getElementById("grade").value;
     const grade = (gradeVal === "auto") ? getGrade(gross) : TABLE[gradeVal];
 
     const health = grade.health;
     const pension = grade.pension;
-    const employment = gross * 0.006;
+    const employment = Math.round(gross * 0.006);
     const social = health + pension + employment;
     const income = Math.round(gross * 0.035 / 12);
     const resident = parseFloat(document.getElementById("residentTax").value) || 0;
@@ -150,10 +139,10 @@ function calc(){
     document.getElementById("gross").textContent = Math.round(gross);
     document.getElementById("health").textContent = Math.round(health);
     document.getElementById("pension").textContent = Math.round(pension);
-    document.getElementById("employment").textContent = Math.round(employment);
-    document.getElementById("social").textContent = Math.round(social);
-    document.getElementById("income").textContent = Math.round(income);
-    document.getElementById("resident").textContent = Math.round(resident);
+    document.getElementById("employment").textContent = employment;
+    document.getElementById("social").textContent = social;
+    document.getElementById("income").textContent = income;
+    document.getElementById("resident").textContent = resident;
     document.getElementById("net").textContent = Math.round(net);
 }
 
@@ -172,7 +161,6 @@ function generateTable(){
     document.querySelectorAll(".t").forEach(i=>i.oninput=calc);
 }
 
-// 初期設定
 initGradeSelect();
 document.getElementById("baseSalary").oninput = calc;
 document.getElementById("scheduledHours").oninput = calc;
